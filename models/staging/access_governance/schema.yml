@@ -1,0 +1,342 @@
+version: 2
+
+models:
+  - name: stg_access_governance__tool_catalog
+    description: >
+      Staging model for the raw tool catalog. Preserves one row per tool and
+      normalizes tool metadata used by downstream dimensions, facts, and marts.
+      This model performs source-conformed cleanup only and does not join or
+      aggregate data.
+    columns:
+      - name: tool_code
+        description: Stable natural key for the tool.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: tool_name
+        description: Human-readable tool name.
+        data_tests:
+          - not_null
+
+      - name: vendor_name
+        description: Vendor or provider name.
+        data_tests:
+          - not_null
+
+      - name: tool_category
+        description: Normalized tool category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - chat_assistant
+                  - coding_assistant
+                  - search_assistant
+                  - multimodal_assistant
+
+      - name: deployment_scope
+        description: Normalized deployment scope.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - enterprise
+                  - team
+
+      - name: risk_tier
+        description: >
+          Normalized governance-oriented risk tier used by downstream review
+          logic. This is a synthetic review-context attribute, not an objective
+          product-safety assessment.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - low
+                  - medium
+                  - high
+
+      - name: is_active
+        description: Whether the tool is currently active in the catalog.
+        data_tests:
+          - not_null
+
+      - name: homepage_url
+        description: Optional public product page URL.
+
+  - name: stg_access_governance__user_directory
+    description: >
+      Staging model for the current-state user directory. Preserves one row per
+      user and normalizes user identity, organization, job level, and employment
+      status attributes. This model performs source-conformed cleanup only and
+      does not join or aggregate data.
+    columns:
+      - name: user_id
+        description: Stable natural key for the user.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: user_name
+        description: Human-readable synthetic user name.
+        data_tests:
+          - not_null
+
+      - name: user_email
+        description: Normalized primary email address.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: team_name
+        description: Current team assignment.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current department assignment.
+        data_tests:
+          - not_null
+
+      - name: job_level
+        description: Normalized simplified job level.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - individual_contributor
+                  - manager
+                  - director
+
+      - name: employment_status
+        description: Normalized current employment status.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - active
+                  - inactive
+
+  - name: stg_access_governance__access_requests
+    description: >
+      Staging model for access request workflow rows. Preserves one row per
+      request, normalizes request and review timestamps, and derives request
+      status helper fields for downstream core models. This model performs
+      source-conformed cleanup only and does not join or aggregate data.
+    columns:
+      - name: request_id
+        description: Stable natural key for the access request.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: requested_at
+        description: Original request submission timestamp.
+        data_tests:
+          - not_null
+
+      - name: requested_at_utc
+        description: UTC-normalized request submission timestamp.
+        data_tests:
+          - not_null
+
+      - name: requested_date_utc
+        description: UTC calendar date derived from requested_at_utc.
+        data_tests:
+          - not_null
+
+      - name: requester_user_id
+        description: User who submitted the request.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: Requested tool code.
+        data_tests:
+          - not_null
+
+      - name: request_purpose
+        description: Normalized request purpose category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - analysis
+                  - engineering
+                  - research
+                  - operations
+                  - content
+
+      - name: data_classification
+        description: Normalized highest expected data sensitivity for intended use.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - public
+                  - internal
+                  - confidential
+                  - restricted
+
+      - name: business_justification_text
+        description: Requester-provided synthetic business justification.
+        data_tests:
+          - not_null
+
+      - name: request_status
+        description: Normalized final request state at extract time.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - pending
+                  - approved
+                  - rejected
+
+      - name: reviewed_at
+        description: >
+          Original review decision timestamp. Populated for approved and
+          rejected requests, and intentionally null for pending requests.
+
+      - name: reviewed_at_utc
+        description: >
+          UTC-normalized review decision timestamp. Populated for approved and
+          rejected requests, and intentionally null for pending requests.
+
+      - name: reviewed_date_utc
+        description: >
+          UTC calendar date derived from reviewed_at_utc. Populated for approved
+          and rejected requests, and intentionally null for pending requests.
+
+      - name: reviewed_by_user_id
+        description: >
+          Reviewer user identifier. Populated for approved and rejected requests,
+          and intentionally null for pending requests.
+
+      - name: review_comment_text
+        description: >
+          Status-dependent reviewer comment text. Null for pending requests,
+          required by generator policy for rejected requests, and optional for
+          approved requests.
+
+      - name: is_pending
+        description: Boolean helper indicating request_status = pending.
+        data_tests:
+          - not_null
+
+      - name: is_approved
+        description: Boolean helper indicating request_status = approved.
+        data_tests:
+          - not_null
+
+      - name: is_rejected
+        description: Boolean helper indicating request_status = rejected.
+        data_tests:
+          - not_null
+
+      - name: approval_lead_time_hours
+        description: >
+          Approval lead time in hours. Populated only for approved requests;
+          nullable for pending and rejected requests.
+
+  - name: stg_access_governance__usage_events_daily
+    description: >
+      Staging model for daily user-tool usage. Preserves one row per user,
+      tool, and usage date with recorded activity, and derives a simple usage
+      activity flag. This model does not materialize zero-activity
+      user-tool-day combinations.
+    columns:
+      - name: usage_date
+        description: Usage calendar date.
+        data_tests:
+          - not_null
+
+      - name: user_id
+        description: User who generated the usage.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: Tool used on the usage date.
+        data_tests:
+          - not_null
+
+      - name: session_count
+        description: Number of sessions recorded for the user, tool, and usage date.
+        data_tests:
+          - not_null
+
+      - name: prompt_count
+        description: Number of prompts recorded for the user, tool, and usage date.
+        data_tests:
+          - not_null
+
+      - name: input_tokens_total
+        description: Total input tokens on the usage date.
+        data_tests:
+          - not_null
+
+      - name: output_tokens_total
+        description: Total output tokens on the usage date.
+        data_tests:
+          - not_null
+
+      - name: has_usage_activity
+        description: Boolean helper indicating whether the row has session or prompt activity.
+        data_tests:
+          - not_null
+
+  - name: stg_access_governance__tool_spend_monthly
+    description: >
+      Staging model for monthly tool spend. Preserves one row per billed month,
+      team, and tool for billed combinations only. This model standardizes
+      spend fields without joining or aggregating data.
+    columns:
+      - name: billing_month
+        description: Billing month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: Team charged for the spend.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Department charged for the spend.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: Tool being billed.
+        data_tests:
+          - not_null
+
+      - name: licensed_seats
+        description: Number of billed seats for the month.
+        data_tests:
+          - not_null
+
+      - name: fixed_license_cost_usd
+        description: Fixed recurring license cost for the month in USD.
+        data_tests:
+          - not_null
+
+      - name: variable_usage_cost_usd
+        description: Usage-based variable cost for the month in USD.
+        data_tests:
+          - not_null
+
+      - name: spend_usd
+        description: Total monthly spend in USD.
+        data_tests:
+          - not_null

@@ -1,0 +1,27 @@
+name: access_governance_warehouse
+config-version: 2
+version: "0.1.0"
+
+profile: access_governance_warehouse
+
+model-paths: ["models"]
+test-paths: ["tests"]
+docs-paths: ["docs"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  access_governance_warehouse:
+    staging:
+      +materialized: view
+
+    core:
+      +materialized: view
+
+    intermediate:
+      +materialized: view
+
+    marts:
+      +materialized: table

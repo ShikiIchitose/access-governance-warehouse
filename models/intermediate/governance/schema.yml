@@ -1,0 +1,289 @@
+version: 2
+
+models:
+  - name: int_user_tool_approved_current
+    description: >
+      Intermediate model representing the current approved-access state with one
+      row per user and tool. This model is used by governance_exceptions_current
+      to compare approved access against recent usage. Because revocation is not
+      modeled in v0.1.0, approval persists after the first approved request.
+    columns:
+      - name: user_id
+        description: >
+          Foreign key-like user identifier for the approved user-tool pair.
+          Each value is expected to match an existing dim_user.user_id, so
+          downstream marts can join current-state user attributes safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the approved user-tool pair.
+          Each value is expected to match an existing dim_tool.tool_code, so
+          downstream marts can join reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: first_approved_at
+        description: >
+          Earliest approval timestamp for the user-tool pair. This value should
+          be present for every row because this intermediate model only contains
+          approved user-tool pairs.
+        data_tests:
+          - not_null
+
+      - name: has_approved_request_flag
+        description: >
+          Boolean helper indicating that the user-tool pair has at least one
+          approved request in the current approved-access state.
+        data_tests:
+          - not_null
+
+  - name: int_user_tool_recent_usage_30d
+    description: >
+      Intermediate model representing recent usage state with one row per user
+      and tool over the latest 30-day usage window. The window is anchored to
+      the maximum available usage_date in fct_tool_usage_daily, not to the
+      system clock. This model is used by governance_exceptions_current to
+      compare recent usage against approved access.
+    columns:
+      - name: user_id
+        description: >
+          Foreign key-like user identifier for the recent usage user-tool pair.
+          Each value is expected to match an existing dim_user.user_id, so
+          downstream marts can join current-state user attributes safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the recent usage user-tool pair.
+          Each value is expected to match an existing dim_tool.tool_code, so
+          downstream marts can join reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: window_start_date
+        description: >
+          Inclusive start date of the recent 30-day usage window.
+        data_tests:
+          - not_null
+
+      - name: window_end_date
+        description: >
+          Inclusive end date of the recent 30-day usage window, derived from the maximum
+          available usage_date in fct_tool_usage_daily.
+        data_tests:
+          - not_null
+
+      - name: last_usage_date
+        description: Latest usage date with activity for the user-tool pair inside the window.
+        data_tests:
+          - not_null
+
+      - name: recent_30d_sessions_total
+        description: Total sessions for the user-tool pair inside the recent 30-day window.
+        data_tests:
+          - not_null
+
+      - name: recent_30d_prompts_total
+        description: Total prompts for the user-tool pair inside the recent 30-day window.
+        data_tests:
+          - not_null
+
+      - name: has_recent_usage_30d_flag
+        description: >
+          Boolean helper indicating that the user-tool pair has session or prompt
+          activity inside the recent 30-day window. Rows in this model are expected to
+          have this flag set to true.
+        data_tests:
+          - not_null
+
+  - name: int_access_requests_open_at_month_end
+    description: >
+      Intermediate model representing request backlog stock at month end. One
+      row exists for each reporting month and access request where the request
+      remained open at that month end. This model isolates the backlog logic
+      used to derive pending_total in access_requests_monthly.
+    columns:
+      - name: reporting_month
+        description: Reporting month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: request_id
+        description: >
+          Access request identifier for a request that remained open at the
+          reporting month end.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('fct_access_request')
+                field: request_id
+
+      - name: requester_user_id
+        description: >
+          Foreign key-like user identifier for the requester. Each value is
+          expected to match an existing dim_user.user_id, so downstream backlog
+          aggregation can join current-state user attributes safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the requested tool. Each value is
+          expected to match an existing dim_tool.tool_code, so downstream marts
+          can join reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: requested_at
+        description: Original request submission timestamp used in month-end open-state logic.
+        data_tests:
+          - not_null
+
+      - name: reviewed_at
+        description: >
+          Review decision timestamp. This may be NULL when the request is still
+          pending at extract time; it may also be after the month end for rows
+          where a request was open at that reporting month end.
+
+  - name: int_user_tool_approved_as_of_month_end
+    description: >
+      Intermediate model representing approved-access stock as of each reporting
+      month end. One row exists for each reporting month, user, and tool where
+      approval was effective by that month end. Because revocation is not
+      modeled in v0.1.0, approved access behaves as a persistent stock through
+      future months.
+    columns:
+      - name: reporting_month
+        description: Reporting month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: user_id
+        description: >
+          Foreign key-like user identifier for the approved user-tool-month
+          stock row. Each value is expected to match an existing dim_user.user_id,
+          so downstream marts can aggregate approved users by current-state user
+          attributes safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the approved user-tool-month
+          stock row. Each value is expected to match an existing dim_tool.tool_code,
+          so downstream marts can join reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: first_approved_at
+        description: >
+          Earliest approval timestamp for the user-tool pair. This value should
+          be present for every approved-as-of row and should be effective on or
+          before the reporting month end.
+        data_tests:
+          - not_null
+
+      - name: has_approved_request_as_of_month_end_flag
+        description: >
+          Boolean helper indicating that the user-tool pair had approved access
+          as of the reporting month end.
+        data_tests:
+          - not_null
+
+  - name: int_tool_usage_aggregated_to_month_team_tool
+    description: >
+      Intermediate model aggregating daily user-tool usage to one row per
+      reporting month, current-state team, and tool. This model supplies monthly
+      usage flow metrics to tool_adoption_monthly. Team and department
+      attribution come from dim_user and do not reconstruct historical team
+      membership.
+    columns:
+      - name: reporting_month
+        description: Reporting month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: Current-state team attribution derived from dim_user.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current-state department attribution derived from dim_user.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the monthly team-tool usage row.
+          Each value is expected to match an existing dim_tool.tool_code, so
+          downstream marts can join reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: active_users_total
+        description: >
+          Distinct count of users with session or prompt activity in the reporting
+          month for the current-state team and tool.
+        data_tests:
+          - not_null
+
+      - name: total_sessions
+        description: Total sessions in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: total_prompts
+        description: Total prompts in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: input_tokens_total
+        description: Total input tokens in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: output_tokens_total
+        description: Total output tokens in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null

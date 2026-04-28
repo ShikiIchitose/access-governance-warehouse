@@ -1,0 +1,123 @@
+{
+  "spec_version": "v0.1.0",
+  "seed": 18790314,
+  "anchor_month": "2025-12-01",
+  "window_months": 12,
+  "dry_run": false,
+  "all_checks_passed": true,
+  "check_count": 13,
+  "raw_row_counts": {
+    "raw_tool_catalog": 5,
+    "raw_user_directory": 198,
+    "raw_access_requests": 553,
+    "raw_usage_events_daily": 30000,
+    "raw_tool_spend_monthly": 313
+  },
+  "raw_targets": {
+    "raw_tool_catalog_rows": 5,
+    "raw_user_directory_rows": 198,
+    "raw_access_requests_rows": 553,
+    "raw_usage_events_daily_rows": 30000,
+    "raw_tool_spend_monthly_rows": 313
+  },
+  "raw_target_ranges": {
+    "raw_access_requests_rows": [
+      500,
+      600
+    ],
+    "raw_usage_events_daily_rows": [
+      27200,
+      32000
+    ],
+    "raw_tool_spend_monthly_rows": [
+      290,
+      350
+    ]
+  },
+  "raw_output_paths": {
+    "raw_tool_catalog": "access-governance-warehouse/data/raw/raw_tool_catalog.parquet",
+    "raw_user_directory": "access-governance-warehouse/data/raw/raw_user_directory.parquet",
+    "raw_access_requests": "access-governance-warehouse/data/raw/raw_access_requests.parquet",
+    "raw_usage_events_daily": "access-governance-warehouse/data/raw/raw_usage_events_daily.parquet",
+    "raw_tool_spend_monthly": "access-governance-warehouse/data/raw/raw_tool_spend_monthly.parquet"
+  },
+  "validation_output_paths": {
+    "generator_validation_summary_markdown": "access-governance-warehouse/artifacts/validation/generator_validation_summary.md",
+    "generator_validation_summary_json": "access-governance-warehouse/artifacts/validation/generator_validation_summary.json"
+  },
+  "checks": {
+    "table_local": [
+      {
+        "name": "raw_tool_catalog_local_contract",
+        "passed": true,
+        "details": "Canonical schema, seed-order, and allowed-value checks passed."
+      },
+      {
+        "name": "raw_user_directory_local_contract",
+        "passed": true,
+        "details": "Canonical schema, quotas, ordering, and user-universe checks passed."
+      },
+      {
+        "name": "raw_access_requests_local_contract",
+        "passed": true,
+        "details": "Canonical schema, workflow nullability, references, and ordering checks passed."
+      },
+      {
+        "name": "raw_usage_events_daily_local_contract",
+        "passed": true,
+        "details": "Canonical schema, row-range, pair-state, metric, and ordering checks passed."
+      },
+      {
+        "name": "raw_tool_spend_monthly_local_contract",
+        "passed": true,
+        "details": "Canonical schema, spend math, seat constraints, and ordering checks passed."
+      }
+    ],
+    "cross_table": [
+      {
+        "name": "access_request_cross_table_relationships",
+        "passed": true,
+        "details": "Access-request requester, reviewer, and tool references resolve against final raw dimension seeds."
+      },
+      {
+        "name": "usage_cross_table_relationships",
+        "passed": true,
+        "details": "Usage user and tool references resolve against final raw dimension seeds."
+      },
+      {
+        "name": "spend_cross_table_relationships",
+        "passed": true,
+        "details": "Spend tool references and team-to-department mappings are consistent with final raw seeds."
+      },
+      {
+        "name": "inactive_user_exclusion",
+        "passed": true,
+        "details": "Inactive users are excluded from final requester, reviewer, and usage records."
+      }
+    ],
+    "schema_prewrite": [
+      {
+        "name": "raw_table_bundle_contract",
+        "passed": true,
+        "details": "Five canonical raw tables are present in memory with canonical naming."
+      },
+      {
+        "name": "output_path_contract",
+        "passed": true,
+        "details": "Canonical raw-output and validation-artifact paths are configured."
+      }
+    ],
+    "schema_postwrite": [
+      {
+        "name": "raw_parquet_files_written",
+        "passed": true,
+        "details": "All canonical raw parquet outputs exist on disk and are non-empty."
+      },
+      {
+        "name": "validation_artifacts_written",
+        "passed": true,
+        "details": "All canonical validation artifacts exist on disk and are non-empty."
+      }
+    ]
+  }
+}

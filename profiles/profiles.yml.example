@@ -1,0 +1,16 @@
+# Copy this file to one of the locations searched by dbt, for example:
+# - ~/.dbt/profiles.yml
+# or run dbt with:
+# - dbt debug --profiles-dir profiles
+#
+# Important:
+# - The top-level profile name must match `profile:` in dbt_project.yml.
+# - Run dbt commands from the repository root when using this relative path.
+
+access_governance_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: data/warehouse/access_governance.duckdb
+      threads: 5

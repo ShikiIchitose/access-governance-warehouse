@@ -1,0 +1,425 @@
+version: 2
+
+models:
+  - name: governance_exceptions_current
+    description: >
+      Current-state user-tool governance exception mart at the user x tool grain.
+      Compares current approved access against recent 30-day usage and exposes
+      user-tool pairs that require governance or adoption follow-up. The recent
+      usage window is anchored to the maximum available usage date in the warehouse,
+      not to the system clock.
+    columns:
+      - name: user_id
+        description: >
+          Foreign key-like user identifier for the user-tool exception row.
+          Each value is expected to match an existing dim_user.user_id, so the
+          mart can expose current-state user attributes safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: user_name
+        description: Current-state user display name.
+        data_tests:
+          - not_null
+
+      - name: user_email
+        description: Current-state user email address.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: Current-state team attribution for the user.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current-state department attribution for the user.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the user-tool exception row.
+          Each value is expected to match an existing dim_tool.tool_code, so the
+          mart can expose reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: tool_name
+        description: Human-readable tool name.
+        data_tests:
+          - not_null
+
+      - name: vendor_name
+        description: Vendor or provider name.
+        data_tests:
+          - not_null
+
+      - name: risk_tier
+        description: Governance-oriented risk tier for the tool.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - low
+                  - medium
+                  - high
+
+      - name: has_approved_request_flag
+        description: Boolean helper indicating whether the user-tool pair has approved access.
+        data_tests:
+          - not_null
+
+      - name: has_recent_usage_30d_flag
+        description: Boolean helper indicating whether the user-tool pair has recent 30-day usage.
+        data_tests:
+          - not_null
+
+      - name: used_without_approval_flag
+        description: >
+          Exception flag indicating recent usage exists without current approved
+          access for the same user-tool pair.
+        data_tests:
+          - not_null
+
+      - name: approved_but_inactive_flag
+        description: >
+          Exception flag indicating current approved access exists without
+          recent 30-day usage for the same user-tool pair.
+        data_tests:
+          - not_null
+
+  - name: access_requests_monthly
+    description: >
+      Monthly request workflow mart at reporting_month, team, and tool grain.
+      Combines request inflow, decision flow, and month-end open request stock
+      for governance workflow monitoring.
+    columns:
+      - name: reporting_month
+        description: Reporting month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: Current-state team attribution for request reporting.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current-state department attribution for request reporting.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the monthly request row. Each
+          value is expected to match an existing dim_tool.tool_code, so the mart
+          can expose reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: tool_name
+        description: Human-readable tool name.
+        data_tests:
+          - not_null
+
+      - name: vendor_name
+        description: Vendor or provider name.
+        data_tests:
+          - not_null
+
+      - name: risk_tier
+        description: Governance-oriented risk tier for the tool.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - low
+                  - medium
+                  - high
+
+      - name: requests_total
+        description: Number of requests submitted in the reporting month.
+        data_tests:
+          - not_null
+
+      - name: approvals_total
+        description: Number of requests approved in the reporting month.
+        data_tests:
+          - not_null
+
+      - name: rejections_total
+        description: Number of requests rejected in the reporting month.
+        data_tests:
+          - not_null
+
+      - name: pending_total
+        description: >
+          Month-end backlog stock metric. Counts requests that remain open at the end
+          of the reporting month. This is not the number of pending requests submitted
+          during the month.
+        data_tests:
+          - not_null
+
+      - name: avg_approval_lead_time_hours
+        description: >
+          Average approval lead time in hours for approvals in the reporting
+          month. Nullable when there are no approved requests for the row.
+
+  - name: tool_adoption_monthly
+    description: >
+      Monthly tool adoption mart at reporting_month, team, and tool grain.
+      Aligns approved-access stock, monthly usage flow, and monthly spend flow
+      to support adoption and finance review. This model intentionally combines
+      month-end stock metrics with during-month flow metrics.
+    columns:
+      - name: reporting_month
+        description: Reporting month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: Current-state team attribution for the monthly adoption row.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current-state department attribution for the monthly adoption row.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the monthly adoption row. Each
+          value is expected to match an existing dim_tool.tool_code, so the mart
+          can expose reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: tool_name
+        description: Human-readable tool name.
+        data_tests:
+          - not_null
+
+      - name: vendor_name
+        description: Vendor or provider name.
+        data_tests:
+          - not_null
+
+      - name: risk_tier
+        description: Governance-oriented risk tier for the tool.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - low
+                  - medium
+                  - high
+
+      - name: licensed_seats
+        description: >
+          Number of billed seats for the reporting month, team, and tool.
+          Nullable when no billing row exists for the combination.
+
+      - name: approved_users_total
+        description: >
+          Month-end approved-access stock metric. Counts users with approved access as
+          of the reporting month end. Because revocation is not modeled in v0.1.0,
+          approved access persists forward after approval.
+        data_tests:
+          - not_null
+
+      - name: active_users_total
+        description: Number of users with usage activity in the reporting month.
+        data_tests:
+          - not_null
+
+      - name: total_sessions
+        description: Total sessions in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: total_prompts
+        description: Total prompts in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: spend_usd
+        description: >
+          Total monthly spend in USD. Nullable when no billing row exists for
+          the reporting_month, team_name, and tool_code combination.
+
+      - name: cost_per_active_user
+        description: >
+          Spend divided by active users. Nullable when spend is absent or active
+          user count is zero.
+
+  - name: adoption_review_candidates_monthly
+    description: >
+      Reviewer-facing monthly follow-up mart derived from tool_adoption_monthly.
+      Adds approval, usage, and spend presence flags together with review status,
+      owner hint, and priority classification.
+    columns:
+      - name: reporting_month
+        description: Reporting month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: Current-state team attribution for the monthly review candidate row.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current-state department attribution for the monthly review candidate row.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the monthly review candidate row.
+          Each value is expected to match an existing dim_tool.tool_code, so the
+          mart can expose reusable tool metadata safely.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: tool_name
+        description: Human-readable tool name.
+        data_tests:
+          - not_null
+
+      - name: vendor_name
+        description: Vendor or provider name.
+        data_tests:
+          - not_null
+
+      - name: risk_tier
+        description: Governance-oriented risk tier for the tool.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - low
+                  - medium
+                  - high
+
+      - name: licensed_seats
+        description: >
+          Number of billed seats for the reporting month, team, and tool.
+          Nullable when no billing row exists for the combination.
+
+      - name: approved_users_total
+        description: >
+          Month-end approved-access stock metric. Counts users with approved
+          access as of the reporting month end. Because revocation is not
+          modeled in v0.1.0, approved access persists forward after approval.
+        data_tests:
+          - not_null
+
+      - name: active_users_total
+        description: Number of users with usage activity in the reporting month.
+        data_tests:
+          - not_null
+
+      - name: total_sessions
+        description: Total sessions in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: total_prompts
+        description: Total prompts in the reporting month for the team-tool combination.
+        data_tests:
+          - not_null
+
+      - name: spend_usd
+        description: >
+          Total monthly spend in USD. Nullable when no billing row exists for
+          the reporting_month, team_name, and tool_code combination.
+
+      - name: cost_per_active_user
+        description: >
+          Spend divided by active users. Nullable when spend is absent or active
+          user count is zero.
+
+      - name: approval_present_flag
+        description: Boolean helper indicating approved_users_total > 0.
+        data_tests:
+          - not_null
+
+      - name: usage_present_flag
+        description: Boolean helper indicating active_users_total > 0.
+        data_tests:
+          - not_null
+
+      - name: spend_present_flag
+        description: Boolean helper indicating spend_usd is not null.
+        data_tests:
+          - not_null
+
+      - name: review_status
+        description: >
+          Reviewer-facing classification derived from approval, usage, and spend
+          presence flags. This value identifies the type of follow-up suggested for the
+          month, team, and tool combination; it is an analytical signal, not a dbt test
+          failure.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - governance_review_usage_without_approval
+                  - finance_review_active_without_billing
+                  - cost_review_billed_without_usage
+                  - adoption_review_approved_not_used
+                  - aligned
+
+      - name: review_owner_hint
+        description: >
+          Suggested owner group for follow-up review. This is a routing hint for review
+          workflows, not an assignment of definitive responsibility.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - access_governance
+                  - finance_procurement
+                  - team_manager_or_enablement
+                  - none
+
+      - name: review_priority
+        description: >
+          Reviewer-facing priority level derived from review_status and risk_tier.
+          High-priority rows are intended to be inspected first.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - high
+                  - medium
+                  - low

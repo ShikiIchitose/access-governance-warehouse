@@ -1,0 +1,395 @@
+version: 2
+
+models:
+  - name: dim_tool
+    description: >
+      Current tool dimension built from the standardized tool catalog. One row
+      per tool. This model acts as the reusable tool lookup for downstream
+      facts, intermediate models, and marts.
+    columns:
+      - name: tool_code
+        description: Stable natural key for the tool.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: tool_name
+        description: Human-readable tool name.
+        data_tests:
+          - not_null
+
+      - name: vendor_name
+        description: Vendor or provider name.
+        data_tests:
+          - not_null
+
+      - name: tool_category
+        description: Normalized tool category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - chat_assistant
+                  - coding_assistant
+                  - search_assistant
+                  - multimodal_assistant
+
+      - name: deployment_scope
+        description: Normalized deployment scope.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - enterprise
+                  - team
+
+      - name: risk_tier
+        description: >
+          Governance-oriented risk tier used by downstream review logic. This is
+          a synthetic review-context attribute, not an objective product-safety
+          assessment.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - low
+                  - medium
+                  - high
+
+      - name: is_active
+        description: Whether the tool is currently active in the catalog.
+        data_tests:
+          - not_null
+
+      - name: homepage_url
+        description: Optional public product page URL.
+
+  - name: dim_user
+    description: >
+      Current-state user dimension built from the standardized user directory.
+      One row per user. Organizational attributes are current-state only in
+      v0.1.0 and are used for downstream request and usage attribution.
+    columns:
+      - name: user_id
+        description: Stable natural key for the user.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: user_name
+        description: Human-readable synthetic user name.
+        data_tests:
+          - not_null
+
+      - name: user_email
+        description: Normalized primary email address.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: team_name
+        description: Current team assignment.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: Current department assignment.
+        data_tests:
+          - not_null
+
+      - name: job_level
+        description: Normalized simplified job level.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - individual_contributor
+                  - manager
+                  - director
+
+      - name: employment_status
+        description: Normalized current employment status.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - active
+                  - inactive
+
+  - name: fct_access_request
+    description: >
+      Request-grain fact table for AI tool access requests. Preserves one row
+      per access request and carries workflow helper fields for downstream
+      request flow, approval, rejection, backlog, and approved-access logic.
+      The fact keeps user and tool keys rather than denormalizing descriptive
+      dimension attributes.
+    columns:
+      - name: request_id
+        description: Stable natural key for the access request.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: requested_at
+        description: Original request submission timestamp.
+        data_tests:
+          - not_null
+
+      - name: requested_at_utc
+        description: UTC-normalized request submission timestamp.
+        data_tests:
+          - not_null
+
+      - name: requested_date_utc
+        description: UTC calendar date derived from requested_at_utc.
+        data_tests:
+          - not_null
+
+      - name: requested_month
+        description: First day of the UTC request month.
+        data_tests:
+          - not_null
+
+      - name: requester_user_id
+        description: >
+          Foreign key-like user identifier for the requester. This value is
+          expected to match dim_user.user_id for downstream joins; the fact
+          model keeps the key rather than denormalizing requester attributes.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the requested tool. This value is
+          expected to match dim_tool.tool_code for downstream joins; the
+          fact model keeps the key rather than denormalizing tool attributes.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: request_purpose
+        description: Normalized request purpose category.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - analysis
+                  - engineering
+                  - research
+                  - operations
+                  - content
+
+      - name: data_classification
+        description: Normalized highest expected data sensitivity for intended use.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - public
+                  - internal
+                  - confidential
+                  - restricted
+
+      - name: business_justification_text
+        description: Requester-provided synthetic business justification.
+        data_tests:
+          - not_null
+
+      - name: request_status
+        description: Normalized final request state at extract time.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - pending
+                  - approved
+                  - rejected
+
+      - name: reviewed_at
+        description: Original review decision timestamp, nullable for pending requests.
+
+      - name: reviewed_at_utc
+        description: UTC-normalized review decision timestamp, nullable for pending requests.
+
+      - name: reviewed_date_utc
+        description: UTC calendar date derived from reviewed_at_utc, nullable for pending requests.
+
+      - name: reviewed_month
+        description: First day of the UTC review month, nullable for pending requests.
+
+      - name: reviewed_by_user_id
+        description: >
+          Nullable foreign key-like user identifier for the reviewer. When this
+          value is present, it is expected to match dim_user.user_id;
+          NULL is valid for pending requests.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: review_comment_text
+        description: >
+          Status-dependent reviewer comment text. Null for pending requests,
+          required by generator policy for rejected requests, and optional for
+          approved requests.
+
+      - name: is_pending
+        description: Boolean helper indicating request_status = pending.
+        data_tests:
+          - not_null
+
+      - name: is_approved
+        description: Boolean helper indicating request_status = approved.
+        data_tests:
+          - not_null
+
+      - name: is_rejected
+        description: Boolean helper indicating request_status = rejected.
+        data_tests:
+          - not_null
+
+      - name: approval_lead_time_hours
+        description: >
+          Approval lead time in hours. Populated only for approved requests;
+          nullable for pending and rejected requests.
+
+  - name: fct_tool_usage_daily
+    description: >
+      Daily usage fact table with one row per user, tool, and usage date.
+      Preserves standardized daily usage metrics and adds usage_month for
+      monthly rollups.
+    columns:
+      - name: usage_date
+        description: Usage calendar date.
+        data_tests:
+          - not_null
+
+      - name: usage_month
+        description: First day of the usage month.
+        data_tests:
+          - not_null
+
+      - name: user_id
+        description: >
+          Foreign key-like user identifier for the usage row. This value is
+          expected to match dim_user.user_id for downstream usage
+          attribution by current-state user attributes.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_user')
+                field: user_id
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the usage row. This value is
+          expected to match dim_tool.tool_code for downstream joins to
+          reusable tool metadata.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: session_count
+        description: Number of sessions on the usage date.
+        data_tests:
+          - not_null
+
+      - name: prompt_count
+        description: Number of prompts on the usage date.
+        data_tests:
+          - not_null
+
+      - name: input_tokens_total
+        description: Total input tokens on the usage date.
+        data_tests:
+          - not_null
+
+      - name: output_tokens_total
+        description: Total output tokens on the usage date.
+        data_tests:
+          - not_null
+
+      - name: has_usage_activity
+        description: Boolean helper indicating whether the row has session or prompt activity.
+        data_tests:
+          - not_null
+
+  - name: fct_tool_spend_monthly
+    description: >
+      Monthly spend fact table with one row per billed month, team, and tool.
+      Contains billed combinations only and preserves license, variable usage,
+      and total spend measures.
+    columns:
+      - name: billing_month
+        description: Billing month represented as the first calendar day of the month.
+        data_tests:
+          - not_null
+
+      - name: team_name
+        description: >
+          Team charged for the spend. This is part of the spend fact grain
+          together with billing_month and tool_code.
+        data_tests:
+          - not_null
+
+      - name: department_name
+        description: >
+          Department charged for the spend. In v0.1.0, this is carried as
+          descriptive organizational metadata and is functionally determined by
+          team_name in the synthetic organization model.
+        data_tests:
+          - not_null
+
+      - name: tool_code
+        description: >
+          Foreign key-like tool identifier for the billed tool. This value is
+          expected to match dim_tool.tool_code for downstream joins to
+          reusable tool metadata.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_tool')
+                field: tool_code
+
+      - name: licensed_seats
+        description: Number of billed seats for the month.
+        data_tests:
+          - not_null
+
+      - name: fixed_license_cost_usd
+        description: Fixed recurring license cost for the month in USD.
+        data_tests:
+          - not_null
+
+      - name: variable_usage_cost_usd
+        description: Usage-based variable cost for the month in USD.
+        data_tests:
+          - not_null
+
+      - name: spend_usd
+        description: >
+          Total monthly spend in USD for the billing row. Expected to reconcile
+          to fixed_license_cost_usd plus variable_usage_cost_usd.
+        data_tests:
+          - not_null

@@ -1,0 +1,369 @@
+version: 2
+
+sources:
+  - name: access_governance
+    description: >
+      Source contract for the five deterministic synthetic raw Parquet datasets
+      used by the access-governance warehouse project. These sources define the
+      raw input boundary for the dbt warehouse and preserve the generator-emitted
+      grains before staging normalization, core modeling, intermediate re-graining,
+      and mart construction.
+    config:
+      meta:
+        external_location: "data/raw/{name}.parquet"
+
+    tables:
+      - name: raw_tool_catalog
+        description: >
+          Raw tool catalog at one row per tool. This source defines the synthetic
+          enterprise AI tool universe used for request, usage, spend, and governance
+          reporting. Tool attributes are descriptive metadata and are preserved into
+          the reusable tool dimension.
+        columns:
+          - name: tool_code
+            description: Stable natural key for the tool.
+            data_tests:
+              - not_null
+              - unique
+
+          - name: tool_name
+            description: Human-readable tool name.
+            data_tests:
+              - not_null
+
+          - name: vendor_name
+            description: Vendor or provider name.
+            data_tests:
+              - not_null
+
+          - name: tool_category
+            description: Broad product category.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - chat_assistant
+                      - coding_assistant
+                      - search_assistant
+                      - multimodal_assistant
+
+          - name: deployment_scope
+            description: Intended scope of deployment.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - enterprise
+                      - team
+
+          - name: risk_tier
+            description: >
+              Governance-oriented risk tier for the tool. This is a synthetic review
+              strictness attribute, not an objective product-safety assessment.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - low
+                      - medium
+                      - high
+
+          - name: is_active
+            description: Whether the tool is currently active in the catalog.
+            data_tests:
+              - not_null
+
+          - name: homepage_url
+            description: Public product page for the tool. Nullable descriptive metadata.
+
+      - name: raw_user_directory
+        description: >
+          Raw current-state user directory at one row per user. This source provides
+          the synthetic user universe referenced by access requests, usage rows, and
+          reviewer assignment. In v0.1.0, organizational attributes are current-state
+          only and do not represent historical team membership.
+        columns:
+          - name: user_id
+            description: Stable natural key for the user.
+            data_tests:
+              - not_null
+              - unique
+
+          - name: user_name
+            description: Human-readable user name.
+            data_tests:
+              - not_null
+
+          - name: user_email
+            description: Primary user email address.
+            data_tests:
+              - not_null
+              - unique
+
+          - name: team_name
+            description: Current team assignment.
+            data_tests:
+              - not_null
+
+          - name: department_name
+            description: Current department assignment.
+            data_tests:
+              - not_null
+
+          - name: job_level
+            description: Simplified job level.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - individual_contributor
+                      - manager
+                      - director
+
+          - name: employment_status
+            description: >
+              Current employment status. Inactive users remain in the directory for
+              current-state completeness, but they are not expected to appear as
+              requesters, usage users, or reviewers in the generated raw workflow.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - active
+                      - inactive
+
+      - name: raw_access_requests
+        description: >
+          Raw access request workflow data at one row per access request. This source
+          captures requester-side context and final review-side state at extract time,
+          including approved, rejected, and pending requests. Review-side fields are
+          status-aware: pending requests intentionally have null review fields.
+        columns:
+          - name: request_id
+            description: Stable natural key for the request.
+            data_tests:
+              - not_null
+              - unique
+
+          - name: requested_at
+            description: UTC timestamp when the request was submitted.
+            data_tests:
+              - not_null
+
+          - name: requester_user_id
+            description: >
+              Foreign key-like user identifier for the requester. Each value is expected
+              to resolve to raw_user_directory.user_id.
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('access_governance', 'raw_user_directory')
+                    field: user_id
+
+          - name: tool_code
+            description: >
+              Foreign key-like tool identifier for the requested tool. Each value is
+              expected to resolve to raw_tool_catalog.tool_code.
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('access_governance', 'raw_tool_catalog')
+                    field: tool_code
+
+          - name: request_purpose
+            description: Simplified request purpose category.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - analysis
+                      - engineering
+                      - research
+                      - operations
+                      - content
+
+          - name: data_classification
+            description: Highest expected data sensitivity for intended use.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - public
+                      - internal
+                      - confidential
+                      - restricted
+
+          - name: business_justification_text
+            description: Short free-text justification.
+            data_tests:
+              - not_null
+
+          - name: request_status
+            description: Final request state at extract time.
+            data_tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values:
+                      - pending
+                      - approved
+                      - rejected
+
+          - name: reviewed_at
+            description: >
+              Review decision timestamp. Must be populated for approved and rejected
+              requests, and intentionally null for pending requests.
+
+          - name: reviewed_by_user_id
+            description: >
+              Foreign key-like user identifier for the reviewer who made the decision.
+              Populated for approved and rejected requests, and intentionally null for
+              pending requests. Non-null values are expected to resolve to
+              raw_user_directory.user_id.
+            data_tests:
+              - relationships:
+                  arguments:
+                    to: source('access_governance', 'raw_user_directory')
+                    field: user_id
+
+          - name: review_comment_text
+            description: >
+              Reviewer-side decision comment. Intentionally null for pending requests,
+              required by generator policy for rejected requests, and optional for approved
+              requests.
+
+      - name: raw_usage_events_daily
+        description: >
+          Raw daily usage data at one row per user, tool, and day with recorded
+          activity. The generator emits usage rows only for active user-tool-day
+          combinations; zero-activity combinations are not materialized as raw rows.
+        columns:
+          - name: usage_date
+            description: Usage day.
+            data_tests:
+              - not_null
+
+          - name: user_id
+            description: >
+              Foreign key-like user identifier for the usage row. Each value is expected
+              to resolve to raw_user_directory.user_id.
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('access_governance', 'raw_user_directory')
+                    field: user_id
+
+          - name: tool_code
+            description: >
+              Foreign key-like tool identifier for the usage row. Each value is expected
+              to resolve to raw_tool_catalog.tool_code.
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('access_governance', 'raw_tool_catalog')
+                    field: tool_code
+
+          - name: session_count
+            description: >
+              Number of usage sessions recorded for the user, tool, and day. Expected to
+              be a non-negative integer.
+            data_tests:
+              - not_null
+
+          - name: prompt_count
+            description: >
+              Number of prompts recorded for the user, tool, and day. Expected to be a
+              non-negative integer.
+            data_tests:
+              - not_null
+
+          - name: input_tokens_total
+            description: >
+              Total input tokens recorded for the user, tool, and day. Expected to be a
+              non-negative integer.
+            data_tests:
+              - not_null
+
+          - name: output_tokens_total
+            description: >
+              Total output tokens recorded for the user, tool, and day. Expected to be a
+              non-negative integer.
+            data_tests:
+              - not_null
+
+      - name: raw_tool_spend_monthly
+        description: >
+          Raw monthly spend data at one row per billed month, team, and tool. This
+          source contains only billing rows emitted by the generator; absence of a row
+          for a month, team, and tool means no raw billing row exists for that
+          combination.
+        columns:
+          - name: billing_month
+            description: >
+              Billing month represented as the first calendar day of the month.
+            data_tests:
+              - not_null
+
+          - name: team_name
+            description: >
+              Team charged for the spend. This is part of the raw spend grain together
+              with billing_month and tool_code.
+            data_tests:
+              - not_null
+
+          - name: department_name
+            description: >
+              Department associated with the charged team. In v0.1.0, this value is
+              functionally determined by team_name in the synthetic organization model.
+            data_tests:
+              - not_null
+
+          - name: tool_code
+            description: >
+              Foreign key-like tool identifier for the billed tool. Each value is expected
+              to resolve to raw_tool_catalog.tool_code.
+            data_tests:
+              - not_null
+              - relationships:
+                  arguments:
+                    to: source('access_governance', 'raw_tool_catalog')
+                    field: tool_code
+
+          - name: licensed_seats
+            description: >
+              Number of billed seats for the billing row. Expected to be a non-negative
+              integer.
+            data_tests:
+              - not_null
+
+          - name: fixed_license_cost_usd
+            description: >
+              Fixed recurring license cost for the month. Expected to be a
+              non-negative USD amount.
+            data_tests:
+              - not_null
+
+          - name: variable_usage_cost_usd
+            description: >
+              Usage-based overage cost for the month. Expected to be a
+              non-negative USD amount.
+            data_tests:
+              - not_null
+
+          - name: spend_usd
+            description: >
+              Total monthly spend in USD for the billing row. Expected to equal
+              fixed_license_cost_usd plus variable_usage_cost_usd.
+            data_tests:
+              - not_null
