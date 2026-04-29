@@ -19,6 +19,7 @@ dependencies = [
   "pandas",
   "pyarrow",
   "tabulate",
+  "dbt-bigquery",
 ]
 
 # ---- dev deps (uv) ----
