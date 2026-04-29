@@ -9,8 +9,10 @@ sources:
       grains before staging normalization, core modeling, intermediate re-graining,
       and mart construction.
     config:
+      enabled: "{{ target.type == 'duckdb' }}"
       meta:
         external_location: "data/raw/{name}.parquet"
+    schema: main
 
     tables:
       - name: raw_tool_catalog
