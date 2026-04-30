@@ -21,8 +21,8 @@ normalized AS (
         trim(request_id) AS request_id,
 
         requested_at,
-        timezone('UTC', requested_at) AS requested_at_utc,
-        cast(timezone('UTC', requested_at) AS DATE) AS requested_date_utc,
+        {{ utc_timestamp('requested_at') }} AS requested_at_utc,
+        {{ utc_date('requested_at') }} AS requested_date_utc,
 
         trim(requester_user_id) AS requester_user_id,
         trim(tool_code) AS tool_code,
@@ -33,10 +33,10 @@ normalized AS (
 
         reviewed_at,
         CASE
-            WHEN reviewed_at IS NOT NULL THEN timezone('UTC', reviewed_at)
+            WHEN reviewed_at IS NOT NULL THEN {{ utc_timestamp('reviewed_at') }}
         END AS reviewed_at_utc,
         CASE
-            WHEN reviewed_at IS NOT NULL THEN cast(timezone('UTC', reviewed_at) AS DATE)
+            WHEN reviewed_at IS NOT NULL THEN {{ utc_date('reviewed_at') }}
         END AS reviewed_date_utc,
 
         CASE
@@ -73,7 +73,7 @@ derived_flags AS (
 
         CASE
             WHEN request_status = 'approved' AND reviewed_at IS NOT NULL
-                THEN epoch(reviewed_at - requested_at) / 3600.0
+                THEN {{ timestamp_diff_hours('reviewed_at', 'requested_at') }}
         END AS approval_lead_time_hours
     FROM normalized
 ),
