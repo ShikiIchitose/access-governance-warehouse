@@ -6,12 +6,7 @@ approved_as_of AS (
         user_id,
         tool_code,
         first_approved_at,
-        cast(
-            date_trunc('month', reporting_month)
-            + INTERVAL 1 MONTH
-            - INTERVAL 1 SECOND
-            AS TIMESTAMP
-        ) AS month_end
+        {{ month_end_timestamp('reporting_month') }} AS month_end
     FROM {{ ref('int_user_tool_approved_as_of_month_end') }}
 )
 

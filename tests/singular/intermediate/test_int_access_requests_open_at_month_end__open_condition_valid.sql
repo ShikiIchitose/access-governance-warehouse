@@ -6,12 +6,7 @@ open_requests AS (
         request_id,
         requested_at,
         reviewed_at,
-        cast(
-            date_trunc('month', reporting_month)
-            + INTERVAL 1 MONTH
-            - INTERVAL 1 SECOND
-            AS TIMESTAMP
-        ) AS month_end
+        {{ month_end_timestamp('reporting_month') }} AS month_end
     FROM {{ ref('int_access_requests_open_at_month_end') }}
 )
 

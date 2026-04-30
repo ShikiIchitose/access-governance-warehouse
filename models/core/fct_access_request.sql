@@ -30,7 +30,7 @@ enriched AS (
         requested_at,
         requested_at_utc,
         requested_date_utc,
-        cast(date_trunc('month', requested_date_utc) AS DATE) AS requested_month,
+        {{ month_start_date('requested_date_utc') }} AS requested_month,
         requester_user_id,
         tool_code,
         request_purpose,
@@ -42,7 +42,7 @@ enriched AS (
         reviewed_date_utc,
         CASE
             WHEN reviewed_date_utc IS NOT null
-                THEN cast(date_trunc('month', reviewed_date_utc) AS DATE)
+                THEN {{ month_start_date('reviewed_date_utc') }}
         END AS reviewed_month,
         reviewed_by_user_id,
         review_comment_text,
