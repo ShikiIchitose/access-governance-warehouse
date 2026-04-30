@@ -86,7 +86,7 @@ reporting_spine AS (
         tool_code
     FROM usage_monthly
 
-    UNION
+    UNION DISTINCT
 
     SELECT
         reporting_month,
@@ -95,7 +95,7 @@ reporting_spine AS (
         tool_code
     FROM spend_monthly
 
-    UNION
+    UNION DISTINCT
 
     SELECT
         reporting_month,

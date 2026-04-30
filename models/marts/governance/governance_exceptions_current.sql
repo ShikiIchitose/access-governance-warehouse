@@ -47,7 +47,7 @@ user_tool_spine AS (
         tool_code
     FROM approved_current
 
-    UNION
+    UNION DISTINCT
 
     SELECT
         user_id,

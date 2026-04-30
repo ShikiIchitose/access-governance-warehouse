@@ -2,8 +2,11 @@ WITH
 
 mart_totals AS (
     SELECT
-        count(*) FILTER (
-            WHERE spend_usd IS NOT null
+        sum(
+            CASE
+                WHEN spend_usd IS NOT null THEN 1
+                ELSE 0
+            END
         ) AS mart_billed_rows,
         coalesce(sum(spend_usd), 0) AS mart_spend_usd
     FROM {{ ref('tool_adoption_monthly') }}
