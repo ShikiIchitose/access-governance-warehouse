@@ -3,16 +3,16 @@ version: 2
 sources:
   - name: access_governance
     description: >
-      Source contract for the five deterministic synthetic raw Parquet datasets
-      used by the access-governance warehouse project. These sources define the
-      raw input boundary for the dbt warehouse and preserve the generator-emitted
-      grains before staging normalization, core modeling, intermediate re-graining,
-      and mart construction.
+      Source contract for the five deterministic synthetic raw datasets used by
+      the access-governance warehouse project. In the DuckDB target, sources are
+      read from local Parquet files via external_location. In the BigQuery target,
+      the same logical sources are expected to exist as loaded tables in the
+      access_governance_raw dataset.
     config:
-      enabled: "{{ target.type == 'duckdb' }}"
       meta:
-        external_location: "data/raw/{name}.parquet"
-    schema: main
+        external_location: "{{ 'data/raw/{name}.parquet' if target.type == 'duckdb' else '' }}"
+    database: "{{ env_var('GCP_PROJECT_ID', 'access_governance_warehouse') }}"
+    schema: "{{ 'access_governance_raw' if target.type == 'bigquery' else 'main' }}"
 
     tables:
       - name: raw_tool_catalog
