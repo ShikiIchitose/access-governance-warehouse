@@ -1,10 +1,10 @@
 # access-governance-warehouse
 
-企業向け AI ツールのアクセスガバナンス（access governance）を題材にした、ローカルウェアハウス（local warehouse）かつ dbt analytics engineering のポートフォリオプロジェクトです。
+企業向け AI ツールのアクセスガバナンス（access governance）を題材にした、DuckDB + BigQuery 対応の dbt analytics engineering ポートフォリオプロジェクトです。
 
-このリポジトリは、決定論的に生成した synthetic source data を、明示的な dbt レイヤー、データ品質テスト（data quality tests）、ドキュメント化、static governance report を通じて、小さくても信頼できる分析用ウェアハウス（analytical warehouse）にモデル化する流れを示します。
+このリポジトリは、決定論的に生成した synthetic source data を、明示的な dbt レイヤー、データ品質テスト（data quality tests）、ドキュメント化、static governance report、任意の BigQuery execution path を通じて、小さくても信頼できる分析用ウェアハウス（analytical warehouse）にモデル化する流れを示します。
 
-主眼はウェアハウスモデリング（warehouse-oriented modeling）であり、アプリケーション UI（application user interface）ではありません。
+ローカル DuckDB path は、clone してすぐ確認できる primary review path として維持しています。BigQuery path は、同じ dbt source contract、model tree、data test suite が cloud data warehouse 上でも実行できることを示すための検証パスです。
 
 ---
 
@@ -27,32 +27,39 @@
 - 生成済みの static governance report
 
 このリポジトリは、関連する Django application repository と概念的に対応しています。  
-ただし、v0.1.0 では live application extraction ではなく、決定論的な file-based synthetic data を使用します。
+ただし、この warehouse は live application extraction ではなく、決定論的な file-based synthetic data を使用します。
 
 ---
 
 ## 短時間レビュー向けの確認順序（Quick Review Path）
 
-短時間でポートフォリオとして確認する場合は、まず生成済み report を確認し、その後に補助的な設計文書を読む構成を推奨します。
+短時間でポートフォリオとして確認する場合は、まず生成済み report を確認し、その後に補助的な設計文書と BigQuery 実行証跡を読む構成を推奨します。
 
 | 手順 | 開くもの | 目的 |
 |---:|---|---|
 | 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | mart layer から生成されたビジネス向け出力を確認する |
-| 2 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | model grain、assumptions、scope boundaries を確認する |
-| 3 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | dbt testing strategy と validation philosophy を確認する |
-| 4 | [`docs/generator_source_contract_and_design_summary.ja.md`](docs/generator_source_contract_and_design_summary.ja.md) | 決定論的な synthetic raw source contract を確認する |
-| 5 | `models/marts/governance/` | ビジネス向け mart SQL を確認する |
+| 2 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | 同じ dbt project が BigQuery 上で build 済みであることを確認する |
+| 3 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | すべての dbt data tests が BigQuery 上でも pass していることを確認する |
+| 4 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery 上の raw tables と dbt output relations を確認する |
+| 5 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | model grain、assumptions、scope boundaries を確認する |
+| 6 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | dbt testing strategy と validation philosophy を確認する |
+| 7 | [`docs/bigquery-execution-path.ja.md`](docs/bigquery-execution-path.ja.md) | 任意の BigQuery execution path を再現または確認する |
+| 8 | `models/marts/governance/` | ビジネス向け mart SQL を確認する |
 
 ---
 
 ## ハイライト
 
 - DuckDB と dbt を用いた end-to-end のローカル analytics engineering workflow
+- 同じ dbt project を用いた BigQuery による cloud warehouse execution validation
 - 明示的な source contracts を持つ決定論的な synthetic raw data
 - sources、staging、core、intermediate、marts へ展開する layered dbt models
 - source contracts、grains、reconciliation、mart logic を対象とする 315 件の dbt data tests
-- ビジネス向け mart から生成される static governance report
+- ビジネス向け marts から生成される static governance report
 - data transformation failures と business review signals の明確な分離
+- ローカル DuckDB path と同じ dbt model tree を使用する任意の BigQuery execution path
+- コミット済み Parquet fixtures を BigQuery に読み込むための raw loading helper
+- build、test、relation inventory artifacts による BigQuery execution evidence
 
 ---
 
@@ -70,38 +77,43 @@
 ## 構成（Architecture）
 
 ```text
-Synthetic raw Generator
+Synthetic raw generator
         |
         v
 data/raw/*.parquet
         |
-        v
-DuckDB local warehouse
-        |
-        v
-dbt sources
-        |
-        v
-staging models
-        |
-        v
-core dimensions and facts
-        |
-        v
-intermediate governance models
-        |
-        v
-business-facing marts
-        |
-        v
-static governance report
-```
-
-dbt model の流れは次の通りです。
-
-```text
+        +-----------------------------+
+        |                             |
+        v                             v
+DuckDB local warehouse        BigQuery raw tables
+        |                             |
+        v                             v
+dbt DuckDB target             dbt BigQuery target
+        |                             |
+        +-------------+---------------+
+                      |
+                      v
+same dbt model tree
 sources -> staging -> core -> intermediate -> marts
+                      |
+                      v
+static governance report and cloud execution evidence
 ```
+
+## ローカル実行パスとクラウド実行パス（Local vs cloud execution paths）
+
+ローカル DuckDB path は、primary reproducible review path です。  
+cloud account は不要で、fresh clone から実行できます。
+
+BigQuery path は、任意の cloud execution path です。  
+同じ logical source contract、staging layer、core layer、intermediate layer、marts、dbt data tests が、BigQuery 上でも実行できることを検証します。  
+BigQuery 専用の model tree は維持していません。
+
+| Path | 目的 | 再現性 |
+|---|---|---|
+| DuckDB local path | clone-and-run で確認できるローカル warehouse review | この repository だけで完全に再現可能 |
+| BigQuery path | cloud data warehouse execution validation | reviewer-owned Google Cloud project があれば再現可能 |
+| Static governance report | reviewer-facing analytical output | DuckDB marts からローカル生成 |
 
 ---
 
@@ -203,6 +215,7 @@ erDiagram
 - stock / flow metrics の両方をモデル化すること
 - marts から reviewer-facing analytical outputs を生成すること
 - assumptions と scope boundaries を明確に文書化すること
+- 同じ dbt model tree を DuckDB と BigQuery の両方で検証すること
 
 ---
 
@@ -317,6 +330,30 @@ report は、mart が所有する business classifications を Python 側で再�
 
 ---
 
+## BigQuery 実行証跡（BigQuery execution evidence）
+
+v0.2.0 では、ローカル DuckDB path を primary review path として維持したまま、任意の BigQuery execution path を追加しています。
+
+BigQuery path は、次のコマンドで検証済みです。
+
+```bash
+uv run dbt build --target bigquery_dev
+uv run dbt test --target bigquery_dev
+```
+
+コミット済みの cloud execution evidence は次の通りです。
+
+| Artifact | 目的 |
+|---|---|
+| [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build result を要約する |
+| [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt data test result を要約する |
+| [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery raw tables と dbt output relations を一覧化する |
+
+BigQuery path は、ローカル DuckDB path と同じ logical source contract、staging layer、core layer、intermediate layer、marts を検証します。  
+BigQuery 専用の model tree は維持していません。
+
+---
+
 ## クイックスタート（Quick Start）
 
 ### 1. Repository を clone する
@@ -392,6 +429,52 @@ uv run python scripts/build_governance_report.py
 artifacts/reports/governance_report_v0_2_x.md
 ```
 
+### Optional: BigQuery path を実行する
+
+BigQuery path は任意であり、Google Cloud project が必要です。
+
+詳細な手順は次を参照してください。
+
+```text
+docs/bigquery-execution-path.ja.md
+```
+
+BigQuery dbt target は、次のファイルにある `bigquery_dev` output をコピーして設定します。
+
+```text
+profiles/profiles.bigquery.yml.example
+```
+
+コピー先は、ローカルの dbt profile です。
+
+```text
+~/.dbt/profiles.yml
+```
+
+この example は、local OAuth-based Application Default Credentials を使用します。
+
+```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project "${GCP_PROJECT_ID}"
+```
+
+必要な BigQuery datasets を作成した後、コミット済みの raw Parquet fixtures は次のコマンドで読み込めます。
+
+```bash
+export GCP_PROJECT_ID="your-gcp-project-id"
+export BQ_LOCATION="asia-northeast1"
+
+uv run python scripts/load_raw_to_bigquery.py \
+  --project-id "${GCP_PROJECT_ID}" \
+  --location "${BQ_LOCATION}"
+```
+
+その後、dbt BigQuery target を実行します。
+
+```bash
+uv run dbt build --target bigquery_dev
+```
+
 ---
 
 ## 主要コマンド（Core Commands）
@@ -450,13 +533,42 @@ uv run dbt docs serve
 uv run python scripts/build_governance_report.py
 ```
 
+### raw Parquet fixtures を BigQuery に読み込む
+
+```bash
+uv run python scripts/load_raw_to_bigquery.py \
+  --project-id "${GCP_PROJECT_ID}" \
+  --location "${BQ_LOCATION}"
+```
+
+### BigQuery raw loading plan を dry-run する
+
+```bash
+uv run python scripts/load_raw_to_bigquery.py \
+  --project-id "${GCP_PROJECT_ID}" \
+  --location "${BQ_LOCATION}" \
+  --dry-run
+```
+
+### BigQuery dbt build を実行する
+
+```bash
+uv run dbt build --target bigquery_dev
+```
+
+### BigQuery dbt tests のみを実行する
+
+```bash
+uv run dbt test --target bigquery_dev
+```
+
 ---
 
 ## テスト方針（Testing Strategy）
 
 この test suite は、業務レビューシグナル（business review signals）が marts に現れることを許容しつつ、変換処理の正当性（transformation correctness）を検証するように設計されています。
 
-現在の v0.1.0 validation baseline では、次の tests が含まれます。
+現在の validation baseline では、次の tests が含まれます。
 
 | テスト区分 | 件数 |
 |---|---:|
@@ -466,16 +578,40 @@ uv run python scripts/build_governance_report.py
 | mart singular tests | 18 |
 | data tests 合計 | 315 |
 
-### 検証ベースライン（Validation Baseline）
+### ローカル検証ベースライン（Local validation baseline）
 
-代表的なローカル `dbt build` は、次の検証ベースラインを満たして正常に完了しています。
+代表的なローカル DuckDB `dbt build` は、次のベースラインで正常に完了しています。
 
 ```text
 dbt=1.11.8
 duckdb=1.10.1
-Found 315 data tests, 19 models, 5 sources, 475 macros
+Found 315 data tests, 19 models, 5 sources
 Finished running 4 table models, 315 data tests, 15 view models
 Done. PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+```
+
+代表的なローカル DuckDB `dbt test` は、次の結果で正常に完了しています。
+
+```text
+Done. PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+```
+
+### BigQuery 検証ベースライン（BigQuery validation baseline）
+
+代表的な BigQuery `dbt build` は、次のベースラインで正常に完了しています。
+
+```text
+dbt=1.11.8
+dbt-bigquery=1.11.1
+Found 315 data tests, 19 models, 5 sources
+Finished running 4 table models, 315 data tests, 15 view models
+Done. PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+```
+
+代表的な BigQuery `dbt test` は、次の結果で正常に完了しています。
+
+```text
+Done. PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
 ```
 
 このテスト方針では、次の 2 つを明確に区別します。
@@ -513,15 +649,28 @@ Business exceptions are outputs. Transformation inconsistencies are failures.
 
 ## 品質確認（Quality Checks）
 
-このリポジトリでは、v0.1.0 において意図的に軽量な CI setup を採用しています。
+このリポジトリでは、意図的に軽量な CI setup を採用しています。
 
 Continuous integration では、現在 Ruff lint / format checks のみを実行します。主要な data validation surface は dbt data testing であり、ローカルでは次のコマンドで実行します。
 
+ローカル検証（Local validation）:
+
 ```bash
 uv run dbt build
+uv run dbt test
 ```
 
-`pytest` は v0.1.0 では使用していません。このプロジェクトの主要な correctness checks は、dbt generic tests、dbt singular tests、generator validation artifacts として表現されているためです。
+任意の BigQuery 検証（Optional BigQuery validation）:
+
+```bash
+uv run dbt build --target bigquery_dev
+uv run dbt test --target bigquery_dev
+```
+
+BigQuery validation には Google Cloud project が必要です。  
+これは必須の default CI step ではなく、任意の cloud execution path として文書化しています。
+
+`pytest` は使用していません。このプロジェクトの主要な correctness checks は、dbt generic tests、dbt singular tests、generator validation artifacts として表現されているためです。
 
 ---
 
@@ -530,15 +679,15 @@ uv run dbt build
 ```text
 access-governance-warehouse/
 ├─ README.md
-├─ README.ja.md
 ├─ pyproject.toml
 ├─ uv.lock
 ├─ dbt_project.yml
 ├─ profiles/
-│  └─ profiles.yml.example
+│  ├─ profiles.yml.example
+│  └─ profiles.bigquery.yml.example
 ├─ data/
-│  ├─ raw/
-│  └─ warehouse/
+│  ├─ raw/       # committed deterministic synthetic Parquet source files
+│  └─ warehouse/ # local DuckDB database output, not committed
 ├─ models/
 │  ├─ sources/
 │  ├─ staging/
@@ -550,10 +699,12 @@ access-governance-warehouse/
 ├─ scripts/
 │  ├─ generate_synthetic_raw.py
 │  ├─ inspect_generated_raw_parquet.sql
+│  ├─ load_raw_to_bigquery.py
 │  └─ build_governance_report.py
 ├─ generator/
 ├─ docs/
 └─ artifacts/
+   ├─ cloud/
    ├─ reports/
    └─ validation/
 ```
@@ -567,13 +718,17 @@ access-governance-warehouse/
 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | domain assumptions、model grain、scope boundaries を説明する |
 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | testing philosophy、layer-level coverage、validation commands を説明する |
 | [`docs/generator_source_contract_and_design_summary.ja.md`](docs/generator_source_contract_and_design_summary.ja.md) | compact generator source contract and design summary を説明する |
+| [`docs/bigquery-execution-path.ja.md`](docs/bigquery-execution-path.ja.md) | 任意の BigQuery setup、raw loading、dbt execution、validation、cleanup guide を説明する |
 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | generated static governance report |
+| [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build evidence |
+| [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt test evidence |
+| [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery raw and dbt relation inventory |
 
 ---
 
 ## 重要なモデリング前提
 
-このリポジトリは、意図的に bounded な v0.1.0 model として構成されています。
+このリポジトリは、意図的に bounded な analytical model として構成されています。
 
 主な前提は次の通りです。
 
@@ -652,7 +807,7 @@ duckdb < scripts/inspect_generated_raw_parquet.sql
 
 このリポジトリは、そのような application の後段に位置し得る downstream analytical warehouse layer に焦点を当てています。access request data、usage activity、spend data を governance、adoption、review outputs に変換する方法をモデル化します。
 
-v0.1.0 では、この warehouse は Django application から live data を抽出しません。このリポジトリの raw data は synthetic、deterministic、file-based です。
+この warehouse は Django application から live data を抽出しません。このリポジトリの raw data は synthetic、deterministic、file-based です。
 
 application UI は Django repository 側の責務です。このリポジトリは warehouse modeling、dbt transformations、data tests、documentation、static reporting に焦点を当てています。
 
@@ -662,18 +817,22 @@ application UI は Django repository 側の責務です。このリポジトリ�
 
 このリポジトリの対象範囲は次の通りです。
 
-- local DuckDB warehouse modeling
-- dbt transformations
-- deterministic synthetic raw data
-- data tests
-- dbt documentation
-- static Markdown reporting
+- local DuckDB warehouse modeling（ローカル DuckDB ウェアハウスモデリング）
+- optional BigQuery warehouse execution validation（任意の BigQuery ウェアハウス実行検証）
+- dbt transformations（dbt による変換処理）
+- deterministic synthetic raw data（決定論的な synthetic raw data）
+- data tests（データテスト）
+- dbt documentation（dbt ドキュメント）
+- static Markdown reporting（静的 Markdown レポート生成）
+- committed cloud execution evidence（コミット済みのクラウド実行証跡）
 
-次の内容は、v0.1.0 のスコープ外です。
+次の内容は、v0.2.0 のスコープ外です。
 
 - production orchestration（本番用オーケストレーション）
 - live source extraction（ライブデータ抽出）
-- cloud warehouse deployment（クラウドウェアハウスへのデプロイ）
+- production-grade cloud deployment（本番レベルのクラウドデプロイ）
+- scheduled dbt jobs（スケジュール実行される dbt ジョブ）
+- BigQuery execution in default CI（default CI における BigQuery 実行）
 - dashboard application development（ダッシュボードアプリケーション開発）
 - application user interface implementation（アプリケーション UI 実装）
 - real access provisioning（実際のアクセス付与）
@@ -682,6 +841,7 @@ application UI は Django repository 側の責務です。このリポジトリ�
 - access revocation（アクセス剥奪）
 - audit-grade access reconstruction（監査レベルのアクセス状態再構築）
 - historical organization snapshots（履歴付き組織スナップショット）
+- Terraform-managed infrastructure（Terraform 管理のインフラ）
 
 これらは意図的に除外しています。  
 これにより、このプロジェクトは最小限で確認しやすい dbt warehouse に焦点を保っています。
@@ -695,13 +855,19 @@ application UI は Django repository 側の責務です。このリポジトリ�
 1. この `README.ja.md` から始める
 2. 生成済み report を開く
    - `artifacts/reports/governance_report_v0_2_x.md`
-3. mart models を確認する
+3. BigQuery execution evidence を確認する
+   - `artifacts/cloud/bigquery_build_summary.md`
+   - `artifacts/cloud/bigquery_test_summary.md`
+   - `artifacts/cloud/bigquery_relation_inventory.md`
+4. mart models を確認する
    - `models/marts/governance/`
-4. testing strategy を確認する
-   - `docs/testing-strategy.md`
-5. domain assumptions を確認する
+5. testing strategy を確認する
+   - `docs/testing-strategy.ja.md`
+6. domain assumptions を確認する
    - `docs/domain-modeling-and-assumptions.ja.md`
-6. dbt documentation をローカルで生成・確認する
+7. 任意の BigQuery execution guide を確認する
+   - `docs/bigquery-execution.ja.md`
+8. dbt documentation をローカルで生成・確認する
    - `uv run dbt docs generate`
    - `uv run dbt docs serve`
 
@@ -709,9 +875,19 @@ application UI は Django repository 側の責務です。このリポジトリ�
 
 ## 現在の状態
 
-v0.1.0 は、ローカルで再現可能な analytics engineering ポートフォリオプロジェクトです。
+v0.2.0 では、元のローカル DuckDB analytics engineering portfolio に、任意の BigQuery execution path を追加しています。
 
-決定論的な raw data generation から、dbt modeling、testing、documentation、mart outputs、static reporting までの小規模な warehouse workflow 全体を示すことを目的としています。
+ローカル DuckDB path は、clone してすぐ確認できる primary review path として維持しています。  
+BigQuery path は、同じ dbt source contract、model tree、marts、data test suite が cloud data warehouse 上でも実行できることを検証します。
+
+現在の validation baseline は次の通りです。
+
+```text
+DuckDB dbt build:   PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+DuckDB dbt test:    PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+BigQuery dbt build: PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+BigQuery dbt test:  PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+```
 
 ## License
 

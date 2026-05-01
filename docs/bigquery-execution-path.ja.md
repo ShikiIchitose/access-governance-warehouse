@@ -1,15 +1,13 @@
-# BigQuery Execution Path
+# BigQuery 実行パス（BigQuery Execution Path）
 
-This document describes how to reproduce the BigQuery execution path for the
-`access-governance-warehouse` project.
+この文書は、`access-governance-warehouse` project における BigQuery execution path を再現する手順を説明します。
 
-The local DuckDB path remains the primary clone-and-run review path. The
-BigQuery path is an optional cloud execution path for reviewers who want to
-validate the same dbt source contract, models, and tests on Google BigQuery.
+ローカル DuckDB path は、clone してすぐ確認できる primary review path として維持しています。  
+BigQuery path は、同じ dbt source contract、models、tests を Google BigQuery 上でも検証したい reviewer 向けの任意の cloud execution path です。
 
-## 1. Architecture
+## 1. 構成（Architecture）
 
-### Local path
+### ローカル path（Local path）
 
 ```text
 data/raw/*.parquet
@@ -29,20 +27,18 @@ data/raw/*.parquet
   -> marts
 ```
 
-The BigQuery path uses the same dbt model tree as the DuckDB path. The source
-contract is shared in:
+BigQuery path は、DuckDB path と同じ dbt model tree を使用します。source contract は次のファイルで共有されています。
 
 ```text
 models/sources/sources.yml
 ```
 
-For the DuckDB target, sources are read from local Parquet files. For the
-BigQuery target, the same logical sources are expected to exist as loaded
-BigQuery raw tables.
+DuckDB target では、sources はローカル Parquet files から読み込まれます。  
+BigQuery target では、同じ logical sources が BigQuery raw tables として読み込まれていることを前提とします。
 
-## 2. Required Google Cloud resources
+## 2. 必要な Google Cloud resources
 
-Recommended values:
+推奨値は次の通りです。
 
 | Resource | Value |
 |---|---|
@@ -50,72 +46,71 @@ Recommended values:
 | Raw dataset | `access_governance_raw` |
 | dbt output dataset | `access_governance_dbt` |
 
-The public documentation uses a placeholder project ID:
+公開ドキュメントでは、project ID として次の placeholder を使用します。
 
 ```text
 your-gcp-project-id
 ```
 
-## 3. Prerequisites
+## 3. 前提条件（Prerequisites）
 
-Install the Google Cloud CLI and confirm that both `gcloud` and `bq` are
-available.
+Google Cloud CLI をインストールし、`gcloud` と `bq` の両方が利用できることを確認します。
 
 ```bash
 gcloud --version
 bq version
 ```
 
-Clone the repository as shown in the main README, install project dependencies, and run commands from the repository root.
+メイン README の手順に従って repository を clone し、project dependencies をインストールします。以降のコマンドは repository root から実行します。
 
 ```bash
 uv sync
 ```
 
-Set local shell variables.
+ローカル shell variables を設定します。
 
 ```bash
 export GCP_PROJECT_ID="your-gcp-project-id"
 export BQ_LOCATION="asia-northeast1"
 ```
 
-Use `${...}` when appending suffixes to variables.
+変数に suffix を付ける場合は、`${...}` を使用します。
 
 ```bash
 echo "${GCP_PROJECT_ID}:access_governance_raw"
 echo "${GCP_PROJECT_ID}:access_governance_dbt"
 ```
 
-## 4. Authenticate locally
+## 4. ローカル認証（Authenticate locally）
 
-Authenticate the Google Cloud CLI.
+Google Cloud CLI にログインします。
 
 ```bash
 gcloud auth login
 ```
 
-Create Application Default Credentials for local development tools.
+ローカル開発ツール向けに Application Default Credentials を作成します。
 
 ```bash
 gcloud auth application-default login
 ```
 
-Set the quota project for Application Default Credentials.
+Application Default Credentials の quota project を設定します。
 
 ```bash
 gcloud auth application-default set-quota-project "${GCP_PROJECT_ID}"
 ```
 
-Set the active Google Cloud project.
+active Google Cloud project を設定します。
 
 ```bash
 gcloud config set project "${GCP_PROJECT_ID}"
 gcloud config get-value project
 ```
 
-## 5. Enable the BigQuery API
+## 5. BigQuery API を有効化する
 
-Check whether the BigQuery API is enabled.
+BigQuery API が有効になっているか確認します。
 
 ```bash
 gcloud services list \
@@ -124,16 +119,16 @@ gcloud services list \
   --filter="config.name:bigquery.googleapis.com"
 ```
 
-Enable it if needed.
+必要であれば有効化します。
 
 ```bash
 gcloud services enable bigquery.googleapis.com \
   --project "${GCP_PROJECT_ID}"
 ```
 
-## 6. Create BigQuery datasets
+## 6. BigQuery datasets を作成する
 
-Create the raw dataset.
+raw dataset を作成します。
 
 ```bash
 bq --location="${BQ_LOCATION}" mk \
@@ -142,7 +137,7 @@ bq --location="${BQ_LOCATION}" mk \
   "${GCP_PROJECT_ID}:access_governance_raw"
 ```
 
-Create the dbt output dataset.
+dbt output dataset を作成します。
 
 ```bash
 bq --location="${BQ_LOCATION}" mk \
@@ -151,34 +146,34 @@ bq --location="${BQ_LOCATION}" mk \
   "${GCP_PROJECT_ID}:access_governance_dbt"
 ```
 
-Confirm the datasets.
+datasets を確認します。
 
 ```bash
 bq ls --project_id "${GCP_PROJECT_ID}"
 ```
 
-Inspect dataset metadata.
+dataset metadata を確認します。
 
 ```bash
 bq show --format=prettyjson "${GCP_PROJECT_ID}:access_governance_raw"
 bq show --format=prettyjson "${GCP_PROJECT_ID}:access_governance_dbt"
 ```
 
-Both datasets should use:
+両方の datasets が次の location を使用していることを確認します。
 
 ```text
 location: asia-northeast1
 ```
 
-## 7. Load raw Parquet files into BigQuery
+## 7. raw Parquet files を BigQuery に読み込む
 
-The BigQuery raw dataset should contain five raw tables loaded from the committed Parquet fixtures under:
+BigQuery raw dataset には、次の directory 配下にコミットされている Parquet fixtures から読み込んだ 5 つの raw tables が含まれる想定です。
 
 ```text
 data/raw/
 ```
 
-Expected raw files:
+想定される raw files は次の通りです。
 
 ```text
 data/raw/raw_tool_catalog.parquet
@@ -188,13 +183,14 @@ data/raw/raw_usage_events_daily.parquet
 data/raw/raw_tool_spend_monthly.parquet
 ```
 
-### Option A: load with the helper script
+### Option A: helper script で読み込む
 
-The repository includes a helper script that loads all five raw Parquet files into BigQuery with overwrite semantics.
+この repository には、5 つの raw Parquet files を BigQuery に一括で読み込む helper script が含まれています。
 
-By default, the helper uses `WRITE_TRUNCATE`, so rerunning it replaces the raw tables instead of appending duplicate rows.
+デフォルトでは、この helper は `WRITE_TRUNCATE` を使用します。  
+そのため、再実行すると duplicate rows を append するのではなく、raw tables を置き換えます。
 
-Dry-run the load plan:
+load plan を dry-run します。
 
 ```bash
 uv run python scripts/load_raw_to_bigquery.py \
@@ -203,7 +199,7 @@ uv run python scripts/load_raw_to_bigquery.py \
   --dry-run
 ```
 
-Run the load:
+問題なければ load を実行します。
 
 ```bash
 uv run python scripts/load_raw_to_bigquery.py \
@@ -211,7 +207,7 @@ uv run python scripts/load_raw_to_bigquery.py \
   --location "${BQ_LOCATION}"
 ```
 
-Expected loaded row counts:
+想定される読み込み後の row counts は次の通りです。
 
 | Raw table | Rows |
 |---|---:|
@@ -221,9 +217,9 @@ Expected loaded row counts:
 | `raw_usage_events_daily` | 30000 |
 | `raw_tool_spend_monthly` | 313 |
 
-### Option B: load manually with the bq CLI
+### Option B: bq CLI で手動読み込みする
 
-Manual `bq load` commands are kept as the transparent reference path.
+手動の `bq load` commands は、transparent reference path として残しています。
 
 ```bash
 bq --location="${BQ_LOCATION}" load \
@@ -265,13 +261,13 @@ bq --location="${BQ_LOCATION}" load \
   data/raw/raw_tool_spend_monthly.parquet
 ```
 
-Confirm the raw tables.
+raw tables を確認します。
 
 ```bash
 bq ls "${GCP_PROJECT_ID}:access_governance_raw"
 ```
 
-Check row counts.
+row counts を確認します。
 
 ```bash
 bq query \
@@ -327,23 +323,23 @@ bq query \
   "
 ```
 
-## 8. Configure dbt BigQuery target
+## 8. dbt BigQuery target を設定する
 
-The repository includes an example profile:
+この repository には example profile が含まれています。
 
 ```text
 profiles/profiles.bigquery.yml.example
 ```
 
-Copy the relevant `bigquery_dev` output into your local dbt profile.
+該当する `bigquery_dev` output を、ローカルの dbt profile にコピーします。
 
-Local profile path:
+ローカル profile path は次の通りです。
 
 ```text
 ~/.dbt/profiles.yml
 ```
 
-Example shape:
+example shape は次の通りです。
 
 ```yaml
 access_governance_warehouse:
@@ -365,49 +361,48 @@ access_governance_warehouse:
       job_retries: 1
 ```
 
-This example uses local OAuth-based Application Default Credentials created by:
+この example は、次のコマンドで作成した local OAuth-based Application Default Credentials を使用します。
 
 ```bash
 gcloud auth application-default login
 gcloud auth application-default set-quota-project "${GCP_PROJECT_ID}"
 ```
 
-Set the project ID environment variable before running the BigQuery target.
+BigQuery target を実行する前に、project ID environment variable を設定します。
 
 ```bash
 export GCP_PROJECT_ID="your-gcp-project-id"
 ```
 
-The shared source configuration uses this environment variable to resolve the
-BigQuery project for raw sources.
+共有 source configuration は、この environment variable を使用して raw sources の BigQuery project を解決します。
 
-## 9. Validate dbt connection and build
+## 9. dbt connection と build を検証する
 
-Validate the BigQuery target.
+BigQuery target を検証します。
 
 ```bash
 uv run dbt debug --target bigquery_dev
 ```
 
-Parse the project against the BigQuery target.
+BigQuery target に対して project を parse します。
 
 ```bash
 uv run dbt parse --target bigquery_dev
 ```
 
-Build models and run tests against BigQuery.
+BigQuery に対して models を build し、tests を実行します。
 
 ```bash
 uv run dbt build --target bigquery_dev
 ```
 
-Run data tests only.
+data tests のみを実行します。
 
 ```bash
 uv run dbt test --target bigquery_dev
 ```
 
-Verified v0.2.0 BigQuery baseline:
+検証済みの v0.2.0 BigQuery baseline は次の通りです。
 
 ```text
 dbt build --target bigquery_dev:
@@ -417,67 +412,68 @@ dbt test --target bigquery_dev:
   PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
 ```
 
-The BigQuery target validates the same logical source contract, staging layer, core layer, intermediate layer, and marts used by the local DuckDB path, without maintaining a separate BigQuery-specific model tree.
+BigQuery target は、ローカル DuckDB path で使用しているものと同じ logical source contract、staging layer、core layer、intermediate layer、marts を検証します。  
+BigQuery 専用の model tree は維持していません。
 
-## 10. BigQuery execution evidence
+## 10. BigQuery 実行証跡（BigQuery execution evidence）
 
-Committed evidence artifacts:
+コミット済みの evidence artifacts は次の通りです。
 
-| Artifact | Purpose |
+| Artifact | 目的 |
 |---|---|
 | [`artifacts/cloud/bigquery_build_summary.md`](../artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build result |
 | [`artifacts/cloud/bigquery_test_summary.md`](../artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt data test result |
 | [`artifacts/cloud/bigquery_relation_inventory.md`](../artifacts/cloud/bigquery_relation_inventory.md) | BigQuery raw and dbt relation inventory |
 
-These artifacts intentionally mask the Google Cloud project ID while keeping dataset and relation names visible.
+これらの artifacts では、dataset names と relation names を見える状態に保ちつつ、Google Cloud project ID を意図的に mask しています。
 
-## 11. Local path should remain unchanged
+## 11. ローカル path は変更しない
 
-The local DuckDB path remains the primary reproducible review path.
+ローカル DuckDB path は、primary reproducible review path として維持します。
 
 ```bash
 uv run dbt build
 uv run python scripts/build_governance_report.py
 ```
 
-## 12. Cost notes
+## 12. コストに関する注意（Cost notes）
 
-This project uses a small deterministic synthetic dataset. BigQuery usage should
-remain small, but BigQuery can incur storage and query costs.
+この project は、小さな決定論的 synthetic dataset を使用します。  
+BigQuery usage は小さいままになる想定ですが、BigQuery では storage costs と query costs が発生する可能性があります。
 
-Recommended safeguards:
+推奨する safeguards は次の通りです。
 
 ```text
-- Use a dedicated Google Cloud project for this portfolio work.
-- Keep datasets in asia-northeast1.
-- Avoid querying unrelated large public datasets.
-- Review bytes processed before running large queries.
-- Delete the datasets when they are no longer needed.
+- この portfolio work 専用の Google Cloud project を使用する。
+- datasets は asia-northeast1 に置く。
+- 関係のない大規模 public datasets を query しない。
+- 大きな query を実行する前に bytes processed を確認する。
+- 不要になった datasets は削除する。
 ```
 
-## 13. Cleanup
+## 13. 不要になった datasets を削除する
 
-Delete the dbt output dataset if needed.
+必要であれば、dbt output dataset を削除します。
 
 ```bash
 bq rm -r -f -d "${GCP_PROJECT_ID}:access_governance_dbt"
 ```
 
-Delete the raw dataset if needed.
+必要であれば、raw dataset を削除します。
 
 ```bash
 bq rm -r -f -d "${GCP_PROJECT_ID}:access_governance_raw"
 ```
 
-Confirm removal.
+削除されたことを確認します。
 
 ```bash
 bq ls --project_id "${GCP_PROJECT_ID}"
 ```
 
-## 14. Public artifact masking policy
+## 14. 公開 artifact の masking policy
 
-Public screenshots and committed artifacts should mask:
+公開 screenshots とコミット済み artifacts では、次の情報を mask しています。
 
 ```text
 - Google Cloud project ID
@@ -488,7 +484,7 @@ Public screenshots and committed artifacts should mask:
 - private account-specific identifiers
 ```
 
-Visible names:
+見えていてよい names は次の通りです。
 
 ```text
 - access_governance_raw
