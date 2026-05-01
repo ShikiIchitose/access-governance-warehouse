@@ -2,11 +2,11 @@
 
 > 日本語版: [README.ja.md](README.ja.md)
 
-A local DuckDB + dbt analytics engineering portfolio project for enterprise artificial intelligence access governance.
+A DuckDB + BigQuery dbt analytics engineering portfolio project for enterprise artificial intelligence access governance.
 
-This repository demonstrates how deterministic synthetic source data can be modeled into a small but credible analytical warehouse using explicit dbt layers, data tests, documentation, and a static governance report.
+This repository demonstrates how deterministic synthetic source data can be modeled into a small but credible analytical warehouse using explicit dbt layers, data tests, documentation, a static governance report, and an optional BigQuery execution path.
 
-The focus is warehouse-oriented modeling, not an application user interface.
+The local DuckDB path remains the primary clone-and-run review path. The BigQuery path demonstrates that the same dbt source contract, model tree, and data test suite can also run on a cloud data warehouse.
 
 ---
 
@@ -28,7 +28,7 @@ The project is designed to demonstrate:
 - dbt documentation and lineage
 - a generated static governance report
 
-This repository is conceptually paired with the related Django application repository, but v0.1.0 uses deterministic file-based synthetic data rather than live application extraction.
+This repository is conceptually paired with the related Django application repository, but this warehouse uses deterministic file-based synthetic data rather than live application extraction.
 
 ---
 
@@ -39,21 +39,28 @@ For a fast portfolio review, start with the generated report and then inspect th
 | Step | What to open | Why |
 |---:|---|---|
 | 1 | [`artifacts/reports/governance_report_v0_1_0.md`](artifacts/reports/governance_report_v0_1_0.md) | See the business-facing output generated from the mart layer |
-| 2 | [`docs/domain-modeling-and-assumptions.md`](docs/domain-modeling-and-assumptions.md) | Understand model grain, assumptions, and scope boundaries |
-| 3 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Understand the dbt testing strategy and validation philosophy |
-| 4 | [`docs/generator_source_contract_and_design_summary.md`](docs/generator_source_contract_and_design_summary.md) | Understand the deterministic synthetic raw source contract |
-| 5 | `models/marts/governance/` | Inspect the business-facing mart SQL |
+| 2 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | Confirm that the same dbt project was built on BigQuery |
+| 3 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | Confirm that all dbt data tests passed on BigQuery |
+| 4 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | Inspect the BigQuery raw and dbt relation inventory |
+| 5 | [`docs/domain-modeling-and-assumptions.md`](docs/domain-modeling-and-assumptions.md) | Understand model grain, assumptions, and scope boundaries |
+| 6 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Understand the dbt testing strategy and validation philosophy |
+| 7 | [`docs/bigquery-execution-path.md`](docs/bigquery-execution-path.md) | Reproduce or inspect the optional BigQuery execution path |
+| 8 | `models/marts/governance/` | Inspect the business-facing mart SQL |
 
 ---
 
 ## Highlights
 
 - End-to-end local analytics engineering workflow using DuckDB and dbt.
+- Cloud warehouse execution validation using BigQuery and the same dbt project.
 - Deterministic synthetic raw data with explicit source contracts.
 - Layered dbt models from sources to staging, core, intermediate, and marts.
 - 315 dbt data tests covering source contracts, grains, reconciliation, and mart logic.
 - Static governance report generated from business-facing marts.
 - Clear separation between data transformation failures and business review signals.
+- Optional BigQuery execution path using the same dbt model tree as the local DuckDB path.
+- BigQuery raw loading helper for committed Parquet fixtures.
+- BigQuery execution evidence with build, test, and relation inventory artifacts.
 
 ---
 
@@ -76,33 +83,37 @@ Synthetic raw generator
         v
 data/raw/*.parquet
         |
-        v
-DuckDB local warehouse
-        |
-        v
-dbt sources
-        |
-        v
-staging models
-        |
-        v
-core dimensions and facts
-        |
-        v
-intermediate governance models
-        |
-        v
-business-facing marts
-        |
-        v
-static governance report
-```
-
-The dbt model flow is:
-
-```text
+        +-----------------------------+
+        |                             |
+        v                             v
+DuckDB local warehouse        BigQuery raw tables
+        |                             |
+        v                             v
+dbt DuckDB target             dbt BigQuery target
+        |                             |
+        +-------------+---------------+
+                      |
+                      v
+same dbt model tree
 sources -> staging -> core -> intermediate -> marts
+                      |
+                      v
+static governance report and cloud execution evidence
 ```
+
+---
+
+## Local vs cloud execution paths
+
+The local DuckDB path is the primary reproducible review path. It requires no cloud account and can be run from a fresh clone.
+
+The BigQuery path is an optional cloud execution path. It validates that the same logical source contract, staging layer, core layer, intermediate layer, marts, and dbt data tests can run on Google BigQuery without maintaining a separate BigQuery-specific model tree.
+
+| Path | Purpose | Reproducibility |
+|---|---|---|
+| DuckDB local path | Clone-and-run local warehouse review | Fully reproducible from this repository |
+| BigQuery path | Cloud data warehouse execution validation | Reproducible with a reviewer-owned Google Cloud project |
+| Static governance report | Reviewer-facing analytical output | Generated locally from DuckDB marts |
 
 ---
 
@@ -204,6 +215,7 @@ It demonstrates the ability to:
 - model both stock and flow metrics
 - generate reviewer-facing analytical outputs from marts
 - document assumptions and scope boundaries clearly
+- validate the same dbt model tree on both DuckDB and BigQuery
 
 ---
 
@@ -318,6 +330,29 @@ The report does not recompute mart-owned business classifications in Python.
 
 ---
 
+## BigQuery execution evidence
+
+v0.2.0 adds an optional BigQuery execution path while preserving the local DuckDB path as the primary review path.
+
+The BigQuery path has been validated with:
+
+```bash
+uv run dbt build --target bigquery_dev
+uv run dbt test --target bigquery_dev
+```
+
+Committed cloud execution evidence:
+
+| Artifact | Purpose |
+|---|---|
+| [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | Summarizes the BigQuery dbt build result |
+| [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | Summarizes the BigQuery dbt data test result |
+| [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | Lists BigQuery raw tables and dbt output relations |
+
+The BigQuery path validates the same logical source contract, staging layer, core layer, intermediate layer, and marts used by the local DuckDB path, without maintaining a separate BigQuery-specific model tree.
+
+---
+
 ## Quick start
 
 ### 1. Clone the repository
@@ -393,6 +428,52 @@ The generated report is written to:
 artifacts/reports/governance_report_v0_1_0.md
 ```
 
+### Optional: run the BigQuery path
+
+The BigQuery path is optional and requires a Google Cloud project.
+
+See the full guide:
+
+```text
+docs/bigquery-execution-path.md
+```
+
+Configure the BigQuery dbt target by copying the `bigquery_dev` output from:
+
+```text
+profiles/profiles.bigquery.yml.example
+```
+
+into your local dbt profile:
+
+```text
+~/.dbt/profiles.yml
+```
+
+The example uses local OAuth-based Application Default Credentials.
+
+```bash
+gcloud auth application-default login
+gcloud auth application-default set-quota-project "${GCP_PROJECT_ID}"
+```
+
+After creating the required BigQuery datasets, the committed raw Parquet fixtures can be loaded with:
+
+```bash
+export GCP_PROJECT_ID="your-gcp-project-id"
+export BQ_LOCATION="asia-northeast1"
+
+uv run python scripts/load_raw_to_bigquery.py \
+  --project-id "${GCP_PROJECT_ID}" \
+  --location "${BQ_LOCATION}"
+```
+
+Then run the dbt BigQuery target:
+
+```bash
+uv run dbt build --target bigquery_dev
+```
+
 ---
 
 ## Core commands
@@ -451,13 +532,42 @@ uv run dbt docs serve
 uv run python scripts/build_governance_report.py
 ```
 
+### Load raw Parquet fixtures into BigQuery
+
+```bash
+uv run python scripts/load_raw_to_bigquery.py \
+  --project-id "${GCP_PROJECT_ID}" \
+  --location "${BQ_LOCATION}"
+```
+
+### Dry-run the BigQuery raw loading plan
+
+```bash
+uv run python scripts/load_raw_to_bigquery.py \
+  --project-id "${GCP_PROJECT_ID}" \
+  --location "${BQ_LOCATION}" \
+  --dry-run
+```
+
+### Run the BigQuery dbt build
+
+```bash
+uv run dbt build --target bigquery_dev
+```
+
+### Run BigQuery dbt tests only
+
+```bash
+uv run dbt test --target bigquery_dev
+```
+
 ---
 
 ## Testing strategy
 
 The test suite is designed to validate transformation correctness while allowing legitimate business review signals to appear in marts.
 
-At the current v0.1.0 validation baseline, the project includes:
+At the current validation baseline, the project includes:
 
 | Test category | Count |
 |---|---:|
@@ -467,16 +577,40 @@ At the current v0.1.0 validation baseline, the project includes:
 | Mart singular tests | 18 |
 | Total data tests | 315 |
 
-### Validation baseline
+### Local validation baseline
 
-A representative local `dbt build` completed successfully with the following baseline:
+A representative local DuckDB `dbt build` completed successfully with the following baseline:
 
 ```text
 dbt=1.11.8
 duckdb=1.10.1
-Found 315 data tests, 19 models, 5 sources, 475 macros
+Found 315 data tests, 19 models, 5 sources
 Finished running 4 table models, 315 data tests, 15 view models
 Done. PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+```
+
+A representative local DuckDB `dbt test` completed successfully with:
+
+```text
+Done. PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+```
+
+### BigQuery validation baseline
+
+A representative BigQuery `dbt build` completed successfully with the following baseline:
+
+```text
+dbt=1.11.8
+dbt-bigquery=1.11.1
+Found 315 data tests, 19 models, 5 sources
+Finished running 4 table models, 315 data tests, 15 view models
+Done. PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+```
+
+A representative BigQuery `dbt test` completed successfully with:
+
+```text
+Done. PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
 ```
 
 The test strategy distinguishes between:
@@ -508,15 +642,27 @@ Business exceptions are outputs. Transformation inconsistencies are failures.
 
 ## Quality checks
 
-This repository uses a deliberately lightweight CI setup for v0.1.0.
+This repository uses a deliberately lightweight CI setup.
 
-Continuous integration currently runs Ruff lint and format checks only. The primary data validation surface is dbt data testing, executed locally through:
+Continuous integration currently runs Ruff lint and format checks only. The primary data validation surface is dbt data testing.
+
+Local validation:
 
 ```bash
 uv run dbt build
+uv run dbt test
 ```
 
-`pytest` is not used in v0.1.0 because the main correctness checks are expressed as dbt generic tests, dbt singular tests, and generator validation artifacts.
+Optional BigQuery validation:
+
+```bash
+uv run dbt build --target bigquery_dev
+uv run dbt test --target bigquery_dev
+```
+
+BigQuery validation requires a Google Cloud project and is documented as an optional cloud execution path rather than a required default CI step.
+
+`pytest` is not used because the main correctness checks are expressed as dbt generic tests, dbt singular tests, and generator validation artifacts.
 
 ---
 
@@ -529,7 +675,8 @@ access-governance-warehouse/
 ├─ uv.lock
 ├─ dbt_project.yml
 ├─ profiles/
-│  └─ profiles.yml.example
+│  ├─ profiles.yml.example
+│  └─ profiles.bigquery.yml.example
 ├─ data/
 │  ├─ raw/       # committed deterministic synthetic Parquet source files
 │  └─ warehouse/ # local DuckDB database output, not committed
@@ -544,10 +691,12 @@ access-governance-warehouse/
 ├─ scripts/
 │  ├─ generate_synthetic_raw.py
 │  ├─ inspect_generated_raw_parquet.sql
+│  ├─ load_raw_to_bigquery.py
 │  └─ build_governance_report.py
 ├─ generator/
 ├─ docs/
 └─ artifacts/
+   ├─ cloud/
    ├─ reports/
    └─ validation/
 ```
@@ -561,13 +710,17 @@ access-governance-warehouse/
 | [`docs/domain-modeling-and-assumptions.md`](docs/domain-modeling-and-assumptions.md) | Domain assumptions, model grain, and scope boundaries |
 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Testing philosophy, layer-level coverage, and validation commands |
 | [`docs/generator_source_contract_and_design_summary.md`](docs/generator_source_contract_and_design_summary.md) | Compact generator source contract and design summary |
+| [`docs/bigquery-execution-path.md`](docs/bigquery-execution-path.md) | Optional BigQuery setup, raw loading, dbt execution, validation, and cleanup guide |
 | [`artifacts/reports/governance_report_v0_1_0.md`](artifacts/reports/governance_report_v0_1_0.md) | Generated static governance report |
+| [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build evidence |
+| [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt test evidence |
+| [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery raw and dbt relation inventory |
 
 ---
 
 ## Important modeling assumptions
 
-This repository intentionally uses a bounded v0.1.0 model.
+This repository intentionally uses a bounded analytical model.
 
 Key assumptions:
 
@@ -646,7 +799,7 @@ The related project is a minimal Django application for enterprise artificial in
 
 This repository focuses on the downstream analytical warehouse layer that could sit after such an application. It models how access request data, usage activity, and spend data can be transformed into governance, adoption, and review outputs.
 
-In v0.1.0, this warehouse does not extract live data from the Django application. The raw data in this repository is synthetic, deterministic, and file-based.
+This warehouse does not extract live data from the Django application. The raw data in this repository is synthetic, deterministic, and file-based.
 
 The application user interface belongs to the Django repository. This repository focuses on warehouse modeling, dbt transformations, data tests, documentation, and static reporting.
 
@@ -657,17 +810,21 @@ The application user interface belongs to the Django repository. This repository
 This repository is in scope for:
 
 - local DuckDB warehouse modeling
+- optional BigQuery warehouse execution validation
 - dbt transformations
 - deterministic synthetic raw data
 - data tests
 - dbt documentation
 - static Markdown reporting
+- committed cloud execution evidence
 
-The following are intentionally outside the scope of v0.1.0:
+The following are intentionally outside the scope of v0.2.0:
 
 - production orchestration
 - live source extraction
-- cloud warehouse deployment
+- production-grade cloud deployment
+- scheduled dbt jobs
+- BigQuery execution in default CI
 - dashboard application development
 - application user interface implementation
 - real access provisioning
@@ -676,6 +833,7 @@ The following are intentionally outside the scope of v0.1.0:
 - access revocation
 - audit-grade access reconstruction
 - historical organization snapshots
+- Terraform-managed infrastructure
 
 These exclusions are intentional.  
 They keep the project focused on a minimal, reviewable dbt warehouse.
@@ -689,13 +847,19 @@ Recommended review path:
 1. Start with this `README.md`.
 2. Open the generated report:
    - `artifacts/reports/governance_report_v0_1_0.md`
-3. Review the mart models:
+3. Review the BigQuery execution evidence:
+   - `artifacts/cloud/bigquery_build_summary.md`
+   - `artifacts/cloud/bigquery_test_summary.md`
+   - `artifacts/cloud/bigquery_relation_inventory.md`
+4. Review the mart models:
    - `models/marts/governance/`
-4. Review the testing strategy:
+5. Review the testing strategy:
    - `docs/testing-strategy.md`
-5. Review the domain assumptions:
+6. Review the domain assumptions:
    - `docs/domain-modeling-and-assumptions.md`
-6. Generate and inspect dbt documentation locally:
+7. Review the optional BigQuery execution guide:
+   - `docs/bigquery-execution-path.md`
+8. Generate and inspect dbt documentation locally:
    - `uv run dbt docs generate`
    - `uv run dbt docs serve`
 
@@ -703,9 +867,18 @@ Recommended review path:
 
 ## Current status
 
-v0.1.0 is a local, reproducible analytics engineering portfolio project.
+v0.2.0 extends the original local DuckDB analytics engineering portfolio with an optional BigQuery execution path.
 
-It is designed to demonstrate a complete small-scale warehouse workflow from deterministic raw data generation through dbt modeling, testing, documentation, mart outputs, and static reporting.
+The local DuckDB path remains the primary clone-and-run review path. The BigQuery path validates that the same dbt source contract, model tree, marts, and data test suite can run on a cloud data warehouse.
+
+Current validation baseline:
+
+```text
+DuckDB dbt build:   PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+DuckDB dbt test:    PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+BigQuery dbt build: PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
+BigQuery dbt test:  PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+```
 
 ## License
 
