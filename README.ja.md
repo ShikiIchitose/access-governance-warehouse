@@ -37,7 +37,7 @@
 
 | 手順 | 開くもの | 目的 |
 |---:|---|---|
-| 1 | [`artifacts/reports/governance_report_v0_1_0.md`](artifacts/reports/governance_report_v0_1_0.md) | mart layer から生成されたビジネス向け出力を確認する |
+| 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | mart layer から生成されたビジネス向け出力を確認する |
 | 2 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | model grain、assumptions、scope boundaries を確認する |
 | 3 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | dbt testing strategy と validation philosophy を確認する |
 | 4 | [`docs/generator_source_contract_and_design_summary.ja.md`](docs/generator_source_contract_and_design_summary.ja.md) | 決定論的な synthetic raw source contract を確認する |
@@ -270,7 +270,7 @@ Generator は `data/raw/` 配下に 5 つの raw Parquet files を出力しま�
 このリポジトリには、生成済みの static governance report が含まれます。
 
 ```text
-artifacts/reports/governance_report_v0_1_0.md
+artifacts/reports/governance_report_v0_2_x.md
 ```
 
 この report は、dbt mart layer から次のコマンドで生成されます。
@@ -389,7 +389,7 @@ uv run python scripts/build_governance_report.py
 生成された report は次に出力されます。
 
 ```text
-artifacts/reports/governance_report_v0_1_0.md
+artifacts/reports/governance_report_v0_2_x.md
 ```
 
 ---
@@ -567,7 +567,7 @@ access-governance-warehouse/
 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | domain assumptions、model grain、scope boundaries を説明する |
 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | testing philosophy、layer-level coverage、validation commands を説明する |
 | [`docs/generator_source_contract_and_design_summary.ja.md`](docs/generator_source_contract_and_design_summary.ja.md) | compact generator source contract and design summary を説明する |
-| [`artifacts/reports/governance_report_v0_1_0.md`](artifacts/reports/governance_report_v0_1_0.md) | generated static governance report |
+| [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | generated static governance report |
 
 ---
 
@@ -694,7 +694,7 @@ application UI は Django repository 側の責務です。このリポジトリ�
 
 1. この `README.ja.md` から始める
 2. 生成済み report を開く
-   - `artifacts/reports/governance_report_v0_1_0.md`
+   - `artifacts/reports/governance_report_v0_2_x.md`
 3. mart models を確認する
    - `models/marts/governance/`
 4. testing strategy を確認する

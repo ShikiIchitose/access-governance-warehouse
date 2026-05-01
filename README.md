@@ -38,7 +38,7 @@ For a fast portfolio review, start with the generated report and then inspect th
 
 | Step | What to open | Why |
 |---:|---|---|
-| 1 | [`artifacts/reports/governance_report_v0_1_0.md`](artifacts/reports/governance_report_v0_1_0.md) | See the business-facing output generated from the mart layer |
+| 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | See the business-facing output generated from the mart layer |
 | 2 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | Confirm that the same dbt project was built on BigQuery |
 | 3 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | Confirm that all dbt data tests passed on BigQuery |
 | 4 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | Inspect the BigQuery raw and dbt relation inventory |
@@ -283,7 +283,7 @@ The primary business-facing marts are:
 The repository includes a generated static governance report:
 
 ```text
-artifacts/reports/governance_report_v0_1_0.md
+artifacts/reports/governance_report_v0_2_x.md
 ```
 
 The report is generated from the dbt mart layer by:
@@ -425,7 +425,7 @@ uv run python scripts/build_governance_report.py
 The generated report is written to:
 
 ```text
-artifacts/reports/governance_report_v0_1_0.md
+artifacts/reports/governance_report_v0_2_x.md
 ```
 
 ### Optional: run the BigQuery path
@@ -711,7 +711,7 @@ access-governance-warehouse/
 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Testing philosophy, layer-level coverage, and validation commands |
 | [`docs/generator_source_contract_and_design_summary.md`](docs/generator_source_contract_and_design_summary.md) | Compact generator source contract and design summary |
 | [`docs/bigquery-execution-path.md`](docs/bigquery-execution-path.md) | Optional BigQuery setup, raw loading, dbt execution, validation, and cleanup guide |
-| [`artifacts/reports/governance_report_v0_1_0.md`](artifacts/reports/governance_report_v0_1_0.md) | Generated static governance report |
+| [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | Generated static governance report |
 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build evidence |
 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt test evidence |
 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery raw and dbt relation inventory |
@@ -846,7 +846,7 @@ Recommended review path:
 
 1. Start with this `README.md`.
 2. Open the generated report:
-   - `artifacts/reports/governance_report_v0_1_0.md`
+   - `artifacts/reports/governance_report_v0_2_x.md`
 3. Review the BigQuery execution evidence:
    - `artifacts/cloud/bigquery_build_summary.md`
    - `artifacts/cloud/bigquery_test_summary.md`

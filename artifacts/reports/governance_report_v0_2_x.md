@@ -366,7 +366,7 @@ Related documentation:
 
 Generated artifact:
 
-- `artifacts/reports/governance_report_v0_1_0.md`
+- `artifacts/reports/governance_report_v0_2_x.md`
 
 Generation command:
 
