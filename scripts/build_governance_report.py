@@ -1229,7 +1229,7 @@ def render_title(metadata: dict[str, Any]) -> str:
 
     return "\n".join(
         [
-            "# Access Governance Warehouse Report v0.1.0",
+            "# Access Governance Warehouse Report v0.2.x",
             "",
             "Generated from `access-governance-warehouse` mart outputs.",
             "",
@@ -2068,7 +2068,7 @@ def render_interpretation_notes() -> str:
             "",
             "### 7.2 Approval persistence",
             "",
-            "Access revocation is not modeled in v0.1.0. Once a user-tool pair "
+            "Access revocation is not modeled in the current analytical model. Once a user-tool pair "
             "has approved access, approved access is treated as persistent in "
             "downstream stock logic.",
             "",
