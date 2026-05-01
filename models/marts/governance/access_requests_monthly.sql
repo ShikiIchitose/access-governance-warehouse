@@ -131,7 +131,7 @@ reporting_spine AS (
         tool_code
     FROM request_inflow_grouped
 
-    UNION
+    UNION DISTINCT
 
     SELECT
         reporting_month,
@@ -140,7 +140,7 @@ reporting_spine AS (
         tool_code
     FROM decision_flow_grouped
 
-    UNION
+    UNION DISTINCT
 
     SELECT
         reporting_month,

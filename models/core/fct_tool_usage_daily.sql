@@ -16,7 +16,7 @@ usage_daily AS (
 enriched AS (
     SELECT
         usage_date,
-        cast(date_trunc('month', usage_date) AS DATE) AS usage_month,
+        {{ month_start_date('usage_date') }} AS usage_month,
         user_id,
         tool_code,
         session_count,

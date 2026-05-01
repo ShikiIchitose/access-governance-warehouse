@@ -24,12 +24,7 @@ approved_requests AS (
 reporting_months AS (
     SELECT DISTINCT
         requested_month AS reporting_month,
-        cast(
-            date_trunc('month', requested_month)
-            + INTERVAL 1 MONTH
-            - INTERVAL 1 SECOND
-            AS TIMESTAMP
-        ) AS month_end
+        {{ month_end_timestamp('requested_month') }} AS month_end
     FROM access_requests
 ),
 

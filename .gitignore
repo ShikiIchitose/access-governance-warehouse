@@ -80,3 +80,9 @@ dbt_packages/
 artifacts/validation/logical_exports/
 data/warehouse/*.duckdb
 data/warehouse/*.duckdb.wal
+
+# Google Cloud credentials
+*.service-account.json
+*service-account*.json
+*credentials*.json
+.gcloud/

@@ -1,0 +1,21 @@
+# Copy this file to one of the locations searched by dbt, for example:
+# - ~/.dbt/profiles.yml
+# or run dbt with:
+# - dbt debug --profiles-dir profiles
+#
+# Important:
+# - The top-level profile name must match `profile:` in dbt_project.yml.
+# - Run dbt commands from the repository root when using this relative path.
+
+access_governance_warehouse:
+  target: bigquery_dev
+  outputs:
+    bigquery_dev:
+      type: bigquery
+      method: oauth
+      project: your-gcp-project-id
+      dataset: access_governance_dbt
+      location: asia-northeast1
+      threads: 5
+      job_execution_timeout_seconds: 300
+      job_retries: 1

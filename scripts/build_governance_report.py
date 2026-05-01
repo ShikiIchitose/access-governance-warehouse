@@ -20,7 +20,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 WAREHOUSE_PATH = REPOSITORY_ROOT / "data" / "warehouse" / "access_governance.duckdb"
 
-REPORT_PATH = REPOSITORY_ROOT / "artifacts" / "reports" / "governance_report_v0_1_0.md"
+REPORT_PATH = REPOSITORY_ROOT / "artifacts" / "reports" / "governance_report_v0_2_x.md"
 
 MART_SCHEMA = "main"
 
@@ -1229,7 +1229,7 @@ def render_title(metadata: dict[str, Any]) -> str:
 
     return "\n".join(
         [
-            "# Access Governance Warehouse Report v0.1.0",
+            "# Access Governance Warehouse Report v0.2.x",
             "",
             "Generated from `access-governance-warehouse` mart outputs.",
             "",
@@ -2068,7 +2068,7 @@ def render_interpretation_notes() -> str:
             "",
             "### 7.2 Approval persistence",
             "",
-            "Access revocation is not modeled in v0.1.0. Once a user-tool pair "
+            "Access revocation is not modeled in the current analytical model. Once a user-tool pair "
             "has approved access, approved access is treated as persistent in "
             "downstream stock logic.",
             "",
@@ -2168,7 +2168,7 @@ def render_source_mart_references() -> str:
             "",
             "Generated artifact:",
             "",
-            "- `artifacts/reports/governance_report_v0_1_0.md`",
+            "- `artifacts/reports/governance_report_v0_2_x.md`",
             "",
             "Generation command:",
             "",
