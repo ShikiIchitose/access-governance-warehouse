@@ -1,16 +1,16 @@
 # access-governance-warehouse
 
-企業向け AI ツールのアクセスガバナンス（access governance）を題材にした、DuckDB + BigQuery 対応の dbt analytics engineering ポートフォリオプロジェクトです。
+エンタープライズ向け AI ツールアクセスガバナンスを題材にした、DuckDB + BigQuery + Looker Studio + dbt による Analytics Engineering portfolio project です。
 
-このリポジトリは、決定論的に生成した synthetic source data を、明示的な dbt レイヤー、データ品質テスト（data quality tests）、ドキュメント化、static governance report、任意の BigQuery execution path を通じて、小さくても信頼できる分析用ウェアハウス（analytical warehouse）にモデル化する流れを示します。
+このリポジトリは、決定論的に生成された synthetic source data を、明示的な dbt layers、data tests、documentation、static governance report、任意の BigQuery execution path、軽量な Looker Studio dashboard artifacts を通じて、小規模ながら信頼できる analytical warehouse としてモデル化できることを示します。
 
-ローカル DuckDB path は、clone してすぐ確認できる primary review path として維持しています。BigQuery path は、同じ dbt source contract、model tree、data test suite が cloud data warehouse 上でも実行できることを示すための検証パスです。
+ローカル DuckDB path は、clone してすぐ確認できる primary review path として維持しています。BigQuery path は、同じ dbt source contract、model tree、data test suite が cloud data warehouse 上でも実行できることを示します。Looker Studio dashboard artifacts は、BigQuery marts が stakeholder-facing BI presentation layer を支えられることを示します。
 
 ---
 
 ## 概要
 
-`access-governance-warehouse` は、企業向け AI ツールのアクセスガバナンス（access governance）に関する分析レイヤー（analytical layer）をモデル化するプロジェクトです。
+`access-governance-warehouse` は、エンタープライズ向け AI ツールのアクセスガバナンス（access governance）に関する分析レイヤー（analytical layer）をモデル化するプロジェクトです。
 
 決定論的な synthetic raw Parquet files から始まり、それをローカル DuckDB-backed dbt project に読み込み、governance、adoption、usage、spend に関する問いに答えるビジネス向け mart（business-facing marts）を生成します。
 
@@ -25,52 +25,61 @@
 - データ品質テスト（data quality tests）
 - dbt documentation and lineage
 - 生成済みの static governance report
+- 任意の BigQuery execution validation
+- 軽量な Looker Studio dashboard artifacts
 
-このリポジトリは、関連する Django application repository と概念的に対応しています。  
+このリポジトリは、関連する Django application リポジトリと概念的に対応しています。  
 ただし、この warehouse は live application extraction ではなく、決定論的な file-based synthetic data を使用します。
 
 ---
 
 ## 短時間レビュー向けの確認順序（Quick Review Path）
 
-短時間でポートフォリオとして確認する場合は、まず生成済み report を確認し、その後に補助的な設計文書と BigQuery 実行証跡を読む構成を推奨します。
+短時間でポートフォリオとして確認する場合は、まず生成済み report と Looker Studio dashboard artifacts を確認し、その後に補助的な設計文書、BigQuery 実行証跡、mart SQL を確認する構成を推奨します。
 
 | 手順 | 開くもの | 目的 |
 |---:|---|---|
-| 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | mart layer から生成されたビジネス向け出力を確認する |
-| 2 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | 同じ dbt project が BigQuery 上で build 済みであることを確認する |
-| 3 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | すべての dbt data tests が BigQuery 上でも pass していることを確認する |
-| 4 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery 上の raw tables と dbt output relations を確認する |
-| 5 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | model grain、assumptions、scope boundaries を確認する |
-| 6 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | dbt testing strategy と validation philosophy を確認する |
-| 7 | [`docs/bigquery-execution-path.ja.md`](docs/bigquery-execution-path.ja.md) | 任意の BigQuery execution path を再現または確認する |
-| 8 | `models/marts/governance/` | ビジネス向け mart SQL を確認する |
+| 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | mart layer から生成されたビジネス向け static output を確認する |
+| 2 | [`docs/looker-studio-dashboard.ja.md`](docs/looker-studio-dashboard.ja.md) | BI 向け Looker Studio dashboard documentation を確認する |
+| 3 | [`docs/assets/looker-studio/executive_overview_dashboard.png`](docs/assets/looker-studio/executive_overview_dashboard.png) | BigQuery marts から作成した executive dashboard page を確認する |
+| 4 | [`docs/assets/looker-studio/tool_adoption_dashboard.png`](docs/assets/looker-studio/tool_adoption_dashboard.png) | adoption、usage、spend、cost alignment の dashboard page を確認する |
+| 5 | [`docs/assets/looker-studio/governance_exceptions_dashboard.png`](docs/assets/looker-studio/governance_exceptions_dashboard.png) | governance exceptions と review signals の dashboard page を確認する |
+| 6 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | 同じ dbt project が BigQuery 上で build 済みであることを確認する |
+| 7 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | すべての dbt data tests が BigQuery 上でも pass していることを確認する |
+| 8 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | BigQuery 上の raw tables と dbt output relations を確認する |
+| 9 | [`docs/domain-modeling-and-assumptions.ja.md`](docs/domain-modeling-and-assumptions.ja.md) | model grain、assumptions、scope boundaries を確認する |
+| 10 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | dbt testing strategy と validation philosophy を確認する |
+| 11 | [`docs/bigquery-execution-path.ja.md`](docs/bigquery-execution-path.ja.md) | 任意の BigQuery execution path を再現または確認する |
+| 12 | `models/marts/governance/` | ビジネス向け mart SQL を確認する |
 
 ---
 
 ## ハイライト
 
-- DuckDB と dbt を用いた end-to-end のローカル analytics engineering workflow
-- 同じ dbt project を用いた BigQuery による cloud warehouse execution validation
-- 明示的な source contracts を持つ決定論的な synthetic raw data
-- sources、staging、core、intermediate、marts へ展開する layered dbt models
-- source contracts、grains、reconciliation、mart logic を対象とする 315 件の dbt data tests
-- ビジネス向け marts から生成される static governance report
-- data transformation failures と business review signals の明確な分離
-- ローカル DuckDB path と同じ dbt model tree を使用する任意の BigQuery execution path
-- コミット済み Parquet fixtures を BigQuery に読み込むための raw loading helper
-- build、test、relation inventory artifacts による BigQuery execution evidence
+- DuckDB と dbt を使用した end-to-end のローカル Analytics Engineering workflow。
+- 同じ dbt project を使用した BigQuery による cloud warehouse execution validation。
+- BigQuery marts に接続した軽量な Looker Studio dashboard artifacts。
+- 明示的な source contracts を持つ、決定論的な synthetic raw data。
+- sources から staging、core、intermediate、marts までの layered dbt models。
+- source contracts、grains、reconciliation、mart logic をカバーする 315 件の dbt data tests。
+- business-facing marts から生成される static governance report。
+- data transformation failures と business review signals の明確な分離。
+- ローカル DuckDB path と同じ dbt model tree を使用する任意の BigQuery execution path。
+- コミット済み Parquet fixtures のための BigQuery raw loading helper。
+- build、test、relation inventory artifacts による BigQuery execution evidence。
+- 公開 Looker Studio report link を必要としない screenshot-based BI artifacts。
 
 ---
 
 ## 業務上の問い（Business Questions）
 
-この warehouse は、次の 4 つの焦点を絞った業務上の問い（business questions）に答えることを目的としています。
+この warehouse と dashboard artifacts は、次の 5 つの焦点を絞った業務上の問い（business questions）に答えることを目的としています。
 
 1. どのチームが、どのツールを、いつ申請・承認・却下しているか
 2. 承認されたツールが実際に使われているか
 3. 承認なしの利用がある user-tool 関係はどれか
 4. 費用（spend）が導入・定着状況（adoption）や利用状況（usage）と方向性として整合しているか
+5. mart layer は、business logic を dbt の外へ移動させることなく、stakeholder-facing BI reporting を支えられるか？
 
 ---
 
@@ -96,24 +105,27 @@ dbt DuckDB target             dbt BigQuery target
 same dbt model tree
 sources -> staging -> core -> intermediate -> marts
                       |
-                      v
-static governance report and cloud execution evidence
+          +-----------+-----------+
+          |                       |
+          v                       v
+static governance report    Looker Studio dashboard artifacts
+                            from BigQuery marts
 ```
 
-## ローカル実行パスとクラウド実行パス（Local vs cloud execution paths）
+## ローカル・クラウド・BI 向け経路
 
-ローカル DuckDB path は、primary reproducible review path です。  
-cloud account は不要で、fresh clone から実行できます。
+ローカル DuckDB path は、primary reproducible review path です。Cloud account を必要とせず、fresh clone から実行できます。
 
-BigQuery path は、任意の cloud execution path です。  
-同じ logical source contract、staging layer、core layer、intermediate layer、marts、dbt data tests が、BigQuery 上でも実行できることを検証します。  
-BigQuery 専用の model tree は維持していません。
+BigQuery path は、任意の cloud execution path です。BigQuery-specific model tree を別に維持することなく、同じ logical source contract、staging layer、core layer、intermediate layer、marts、dbt data tests が Google BigQuery 上でも実行できることを検証します。
+
+Looker Studio path は、BigQuery marts の上に構築した BI-facing artifact layer です。公開 report link を必須にするのではなく、screenshots と dashboard documentation によって説明します。
 
 | Path | 目的 | 再現性 |
 |---|---|---|
-| DuckDB local path | clone-and-run で確認できるローカル warehouse review | この repository だけで完全に再現可能 |
-| BigQuery path | cloud data warehouse execution validation | reviewer-owned Google Cloud project があれば再現可能 |
+| DuckDB local path | clone してすぐ確認できるローカル warehouse review | この repository から完全に再現可能 |
+| BigQuery path | cloud data warehouse execution validation | reviewer が所有する Google Cloud project があれば再現可能 |
 | Static governance report | reviewer-facing analytical output | DuckDB marts からローカル生成 |
+| Looker Studio dashboard artifacts | BigQuery marts から作成した BI-facing presentation evidence | コミット済み screenshots と documentation で確認可能 |
 
 ---
 
@@ -203,7 +215,7 @@ erDiagram
 
 ## このプロジェクトが示すこと
 
-このリポジトリは、analytics engineering ポートフォリオ成果物として作成されています。
+このリポジトリは、Analytics Engineering ポートフォリオ成果物として作成されています。
 
 次の能力を示すことを目的としています。
 
@@ -221,13 +233,13 @@ erDiagram
 
 ## データドメイン（Data Domain）
 
-モデル化している domain は、企業向け AI ツールのアクセスガバナンス（access governance）です。
+モデル化している domain は、エンタープライズ向け AI ツールのアクセスガバナンス（access governance）です。
 
 synthetic dataset には次の領域が含まれます。
 
 | 領域 | モデル化対象 |
 |---|---|
-| ツールカタログ（Tool catalog） | 企業向け AI ツール |
+| ツールカタログ（Tool catalog） | エンタープライズ向け AI ツール |
 | ユーザーディレクトリ（User directory） | 現在状態のユーザー、team、department、job level |
 | アクセス申請（Access requests） | final review state を持つ request workflow rows |
 | 利用実績（Usage） | daily user-tool usage activity |
@@ -354,9 +366,42 @@ BigQuery 専用の model tree は維持していません。
 
 ---
 
+## Looker Studio ダッシュボード成果物（Looker Studio dashboard artifacts）
+
+v0.2.1 では、BigQuery execution path の上に、軽量な Looker Studio dashboard artifacts を追加しています。
+
+この dashboard は、選択した BigQuery mart outputs を embedded Looker Studio data sources に接続し、3 つの stakeholder-facing pages として表示します。
+
+| Page | Screenshot |
+|---|---|
+| Executive Overview | [`docs/assets/looker-studio/executive_overview_dashboard.png`](docs/assets/looker-studio/executive_overview_dashboard.png) |
+| Tool Adoption and Usage | [`docs/assets/looker-studio/tool_adoption_dashboard.png`](docs/assets/looker-studio/tool_adoption_dashboard.png) |
+| Governance Exceptions and Review Signals | [`docs/assets/looker-studio/governance_exceptions_dashboard.png`](docs/assets/looker-studio/governance_exceptions_dashboard.png) |
+
+Dashboard documentation は次の通りです。
+
+```text
+docs/looker-studio-dashboard.ja.md
+```
+
+この dashboard は、次の既存 marts を使用します。
+
+```text
+access_governance_dbt.access_requests_monthly
+access_governance_dbt.tool_adoption_monthly
+access_governance_dbt.adoption_review_candidates_monthly
+access_governance_dbt.governance_exceptions_current
+```
+
+この dashboard は BI-facing portfolio artifact であり、production BI infrastructure ではありません。Business logic、review classifications、mart grain は dbt が所有します。Looker Studio は presentation、filtering、charting、screenshot-based documentation のために使用します。
+
+公開 Looker Studio report link は必須ではありません。Repository-facing artifacts は、コミット済み screenshots と documentation です。
+
+---
+
 ## クイックスタート（Quick Start）
 
-### 1. Repository を clone する
+### 1. リポジトリを clone する
 
 ```bash
 git clone https://github.com/ShikiIchitose/access-governance-warehouse.git
@@ -702,7 +747,7 @@ access-governance-warehouse/
 │  ├─ load_raw_to_bigquery.py
 │  └─ build_governance_report.py
 ├─ generator/
-├─ docs/
+├─ docs/        # modeling docs, BigQuery guide, Looker Studio dashboard docs, and screenshots
 └─ artifacts/
    ├─ cloud/
    ├─ reports/
@@ -719,6 +764,7 @@ access-governance-warehouse/
 | [`docs/testing-strategy.ja.md`](docs/testing-strategy.ja.md) | testing philosophy、layer-level coverage、validation commands を説明する |
 | [`docs/generator_source_contract_and_design_summary.ja.md`](docs/generator_source_contract_and_design_summary.ja.md) | compact generator source contract and design summary を説明する |
 | [`docs/bigquery-execution-path.ja.md`](docs/bigquery-execution-path.ja.md) | 任意の BigQuery setup、raw loading、dbt execution、validation、cleanup guide を説明する |
+| [`docs/looker-studio-dashboard.ja.md`](docs/looker-studio-dashboard.ja.md) | Looker Studio dashboard の目的、pages、chart inventory、metric definitions、screenshots、limitations、reproduction notes |
 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | generated static governance report |
 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build evidence |
 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt test evidence |
@@ -742,7 +788,7 @@ access-governance-warehouse/
 - dataset は synthetic かつ deterministic である
 - warehouse は audit-grade な historical access state reconstruction ではない
 
-これらの前提は、プロジェクトを compact で inspectable に保ち、ローカル analytics engineering portfolio として扱いやすくするためのものです。
+これらの前提は、プロジェクトを compact で inspectable に保ち、ローカル Analytics Engineering portfolio として扱いやすくするためのものです。
 
 ---
 
@@ -803,13 +849,13 @@ duckdb < scripts/inspect_generated_raw_parquet.sql
 
 [`ai-tool-access-requests`](https://github.com/ShikiIchitose/ai-tool-access-requests)
 
-関連プロジェクトは、企業向け AI ツールの access request / approval workflow を扱う minimal Django application です。
+関連プロジェクトは、エンタープライズ向け AI ツールの access request / approval workflow を扱う minimal Django application です。
 
 このリポジトリは、そのような application の後段に位置し得る downstream analytical warehouse layer に焦点を当てています。access request data、usage activity、spend data を governance、adoption、review outputs に変換する方法をモデル化します。
 
 この warehouse は Django application から live data を抽出しません。このリポジトリの raw data は synthetic、deterministic、file-based です。
 
-application UI は Django repository 側の責務です。このリポジトリは warehouse modeling、dbt transformations、data tests、documentation、static reporting に焦点を当てています。
+application UI は Django リポジトリ側の責務です。このリポジトリは warehouse modeling、dbt transformations、data tests、documentation、static reporting に焦点を当てています。
 
 ---
 
@@ -825,15 +871,16 @@ application UI は Django repository 側の責務です。このリポジトリ�
 - dbt documentation（dbt ドキュメント）
 - static Markdown reporting（静的 Markdown レポート生成）
 - committed cloud execution evidence（コミット済みのクラウド実行証跡）
+- 軽量な Looker Studio dashboard artifacts
+- screenshots を中心とした BI documentation
 
-次の内容は、v0.2.0 のスコープ外です。
+次の内容は、本リポジトリのスコープ外です。
 
 - production orchestration（本番用オーケストレーション）
 - live source extraction（ライブデータ抽出）
 - production-grade cloud deployment（本番レベルのクラウドデプロイ）
 - scheduled dbt jobs（スケジュール実行される dbt ジョブ）
 - BigQuery execution in default CI（default CI における BigQuery 実行）
-- dashboard application development（ダッシュボードアプリケーション開発）
 - application user interface implementation（アプリケーション UI 実装）
 - real access provisioning（実際のアクセス付与）
 - real audit trails（実際の監査証跡）
@@ -842,6 +889,9 @@ application UI は Django repository 側の責務です。このリポジトリ�
 - audit-grade access reconstruction（監査レベルのアクセス状態再構築）
 - historical organization snapshots（履歴付き組織スナップショット）
 - Terraform-managed infrastructure（Terraform 管理のインフラ）
+- custom dashboard application development（独自ダッシュボードアプリケーションの開発）
+- production BI deployment（本番運用を前提とした BI 環境の構築）
+- public Looker Studio report link requirement（公開 Looker Studio レポートリンクの必須化）
 
 これらは意図的に除外しています。  
 これにより、このプロジェクトは最小限で確認しやすい dbt warehouse に焦点を保っています。
@@ -852,22 +902,27 @@ application UI は Django repository 側の責務です。このリポジトリ�
 
 推奨する確認順序は次の通りです。
 
-1. この `README.ja.md` から始める
-2. 生成済み report を開く
+1. まず、この `README.ja.md` から確認します。
+2. 生成済みの static report を確認します。
    - `artifacts/reports/governance_report_v0_2_x.md`
-3. BigQuery execution evidence を確認する
+3. Looker Studio dashboard artifacts を確認します。
+   - `docs/looker-studio-dashboard.ja.md`
+   - `docs/assets/looker-studio/executive_overview_dashboard.png`
+   - `docs/assets/looker-studio/tool_adoption_dashboard.png`
+   - `docs/assets/looker-studio/governance_exceptions_dashboard.png`
+4. BigQuery execution evidence を確認します。
    - `artifacts/cloud/bigquery_build_summary.md`
    - `artifacts/cloud/bigquery_test_summary.md`
    - `artifacts/cloud/bigquery_relation_inventory.md`
-4. mart models を確認する
+5. mart models を確認します。
    - `models/marts/governance/`
-5. testing strategy を確認する
+6. testing strategy を確認します。
    - `docs/testing-strategy.ja.md`
-6. domain assumptions を確認する
+7. domain assumptions を確認します。
    - `docs/domain-modeling-and-assumptions.ja.md`
-7. 任意の BigQuery execution guide を確認する
-   - `docs/bigquery-execution.ja.md`
-8. dbt documentation をローカルで生成・確認する
+8. 任意の BigQuery execution guide を確認します。
+   - `docs/bigquery-execution-path.ja.md`
+9. dbt documentation をローカルで生成し、確認します。
    - `uv run dbt docs generate`
    - `uv run dbt docs serve`
 
@@ -875,10 +930,9 @@ application UI は Django repository 側の責務です。このリポジトリ�
 
 ## 現在の状態
 
-v0.2.0 では、元のローカル DuckDB analytics engineering portfolio に、任意の BigQuery execution path を追加しています。
+v0.2.1 では、ローカル DuckDB による Analytics Engineering portfolio と、任意の BigQuery execution path の上に、軽量な Looker Studio dashboard artifacts を追加しています。
 
-ローカル DuckDB path は、clone してすぐ確認できる primary review path として維持しています。  
-BigQuery path は、同じ dbt source contract、model tree、marts、data test suite が cloud data warehouse 上でも実行できることを検証します。
+ローカル DuckDB path は、クローンしてすぐ確認できる primary review path として維持しています。BigQuery path は、同じ dbt source contract、model tree、marts、data test suite が cloud data warehouse 上でも実行できることを検証します。Looker Studio artifacts は、選択された BigQuery marts が、documented dashboard screenshots を通じて stakeholder-facing BI reporting を支えられることを示します。
 
 現在の validation baseline は次の通りです。
 
@@ -887,6 +941,15 @@ DuckDB dbt build:   PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
 DuckDB dbt test:    PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
 BigQuery dbt build: PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
 BigQuery dbt test:  PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+```
+
+コミット済みの v0.2.1 BI-facing artifacts は次の通りです。
+
+```text
+docs/looker-studio-dashboard.ja.md
+docs/assets/looker-studio/executive_overview_dashboard.png
+docs/assets/looker-studio/tool_adoption_dashboard.png
+docs/assets/looker-studio/governance_exceptions_dashboard.png
 ```
 
 ## License

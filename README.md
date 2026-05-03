@@ -2,11 +2,11 @@
 
 > 日本語版: [README.ja.md](README.ja.md)
 
-A DuckDB + BigQuery dbt analytics engineering portfolio project for enterprise artificial intelligence access governance.
+A DuckDB + BigQuery + Looker Studio dbt analytics engineering portfolio project for enterprise artificial intelligence access governance.
 
-This repository demonstrates how deterministic synthetic source data can be modeled into a small but credible analytical warehouse using explicit dbt layers, data tests, documentation, a static governance report, and an optional BigQuery execution path.
+This repository demonstrates how deterministic synthetic source data can be modeled into a small but credible analytical warehouse using explicit dbt layers, data tests, documentation, a static governance report, an optional BigQuery execution path, and lightweight Looker Studio dashboard artifacts.
 
-The local DuckDB path remains the primary clone-and-run review path. The BigQuery path demonstrates that the same dbt source contract, model tree, and data test suite can also run on a cloud data warehouse.
+The local DuckDB path remains the primary clone-and-run review path. The BigQuery path demonstrates that the same dbt source contract, model tree, and data test suite can also run on a cloud data warehouse. The Looker Studio dashboard artifacts demonstrate that the BigQuery marts can support a stakeholder-facing BI presentation layer.
 
 ---
 
@@ -27,6 +27,8 @@ The project is designed to demonstrate:
 - data quality tests
 - dbt documentation and lineage
 - a generated static governance report
+- optional BigQuery execution validation
+- lightweight Looker Studio dashboard artifacts
 
 This repository is conceptually paired with the related Django application repository, but this warehouse uses deterministic file-based synthetic data rather than live application extraction.
 
@@ -34,18 +36,22 @@ This repository is conceptually paired with the related Django application repos
 
 ## Quick review path
 
-For a fast portfolio review, start with the generated report and then inspect the supporting design documents.
+For a fast portfolio review, start with the generated report and dashboard artifacts, then inspect the supporting design documents.
 
 | Step | What to open | Why |
 |---:|---|---|
-| 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | See the business-facing output generated from the mart layer |
-| 2 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | Confirm that the same dbt project was built on BigQuery |
-| 3 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | Confirm that all dbt data tests passed on BigQuery |
-| 4 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | Inspect the BigQuery raw and dbt relation inventory |
-| 5 | [`docs/domain-modeling-and-assumptions.md`](docs/domain-modeling-and-assumptions.md) | Understand model grain, assumptions, and scope boundaries |
-| 6 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Understand the dbt testing strategy and validation philosophy |
-| 7 | [`docs/bigquery-execution-path.md`](docs/bigquery-execution-path.md) | Reproduce or inspect the optional BigQuery execution path |
-| 8 | `models/marts/governance/` | Inspect the business-facing mart SQL |
+| 1 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | See the business-facing static output generated from the mart layer |
+| 2 | [`docs/looker-studio-dashboard.md`](docs/looker-studio-dashboard.md) | Review the BI-facing Looker Studio dashboard documentation |
+| 3 | [`docs/assets/looker-studio/executive_overview_dashboard.png`](docs/assets/looker-studio/executive_overview_dashboard.png) | See the executive dashboard page built from BigQuery marts |
+| 4 | [`docs/assets/looker-studio/tool_adoption_dashboard.png`](docs/assets/looker-studio/tool_adoption_dashboard.png) | See the adoption, usage, spend, and cost alignment dashboard page |
+| 5 | [`docs/assets/looker-studio/governance_exceptions_dashboard.png`](docs/assets/looker-studio/governance_exceptions_dashboard.png) | See the governance exceptions and review signals dashboard page |
+| 6 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | Confirm that the same dbt project was built on BigQuery |
+| 7 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | Confirm that all dbt data tests passed on BigQuery |
+| 8 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | Inspect the BigQuery raw and dbt relation inventory |
+| 9 | [`docs/domain-modeling-and-assumptions.md`](docs/domain-modeling-and-assumptions.md) | Understand model grain, assumptions, and scope boundaries |
+| 10 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Understand the dbt testing strategy and validation philosophy |
+| 11 | [`docs/bigquery-execution-path.md`](docs/bigquery-execution-path.md) | Reproduce or inspect the optional BigQuery execution path |
+| 12 | `models/marts/governance/` | Inspect the business-facing mart SQL |
 
 ---
 
@@ -53,6 +59,7 @@ For a fast portfolio review, start with the generated report and then inspect th
 
 - End-to-end local analytics engineering workflow using DuckDB and dbt.
 - Cloud warehouse execution validation using BigQuery and the same dbt project.
+- Lightweight Looker Studio dashboard artifacts connected to BigQuery marts.
 - Deterministic synthetic raw data with explicit source contracts.
 - Layered dbt models from sources to staging, core, intermediate, and marts.
 - 315 dbt data tests covering source contracts, grains, reconciliation, and mart logic.
@@ -61,17 +68,19 @@ For a fast portfolio review, start with the generated report and then inspect th
 - Optional BigQuery execution path using the same dbt model tree as the local DuckDB path.
 - BigQuery raw loading helper for committed Parquet fixtures.
 - BigQuery execution evidence with build, test, and relation inventory artifacts.
+- Screenshot-based BI artifacts that do not require a public Looker Studio report link.
 
 ---
 
 ## Business questions
 
-The warehouse is designed to answer four focused questions:
+The warehouse and dashboard artifacts are designed to answer five focused questions:
 
 1. Which teams request, approve, or reject which tools over time?
 2. Are approved tools actually used?
 3. Which user-tool relationships show usage without approved access?
 4. Is spend directionally aligned with adoption and usage?
+5. Can the mart layer support stakeholder-facing BI reporting without moving business logic out of dbt?
 
 ---
 
@@ -97,23 +106,29 @@ dbt DuckDB target             dbt BigQuery target
 same dbt model tree
 sources -> staging -> core -> intermediate -> marts
                       |
-                      v
-static governance report and cloud execution evidence
+          +-----------+-----------+
+          |                       |
+          v                       v
+static governance report    Looker Studio dashboard artifacts
+                            from BigQuery marts
 ```
 
 ---
 
-## Local vs cloud execution paths
+## Local, cloud, and BI-facing paths
 
 The local DuckDB path is the primary reproducible review path. It requires no cloud account and can be run from a fresh clone.
 
 The BigQuery path is an optional cloud execution path. It validates that the same logical source contract, staging layer, core layer, intermediate layer, marts, and dbt data tests can run on Google BigQuery without maintaining a separate BigQuery-specific model tree.
+
+The Looker Studio path is a BI-facing artifact layer on top of the BigQuery marts. It is documented through screenshots and dashboard documentation rather than a required public report link.
 
 | Path | Purpose | Reproducibility |
 |---|---|---|
 | DuckDB local path | Clone-and-run local warehouse review | Fully reproducible from this repository |
 | BigQuery path | Cloud data warehouse execution validation | Reproducible with a reviewer-owned Google Cloud project |
 | Static governance report | Reviewer-facing analytical output | Generated locally from DuckDB marts |
+| Looker Studio dashboard artifacts | BI-facing presentation evidence from BigQuery marts | Reviewable through committed screenshots and documentation |
 
 ---
 
@@ -350,6 +365,39 @@ Committed cloud execution evidence:
 | [`artifacts/cloud/bigquery_relation_inventory.md`](artifacts/cloud/bigquery_relation_inventory.md) | Lists BigQuery raw tables and dbt output relations |
 
 The BigQuery path validates the same logical source contract, staging layer, core layer, intermediate layer, and marts used by the local DuckDB path, without maintaining a separate BigQuery-specific model tree.
+
+---
+
+## Looker Studio dashboard artifacts
+
+v0.2.1 adds lightweight Looker Studio dashboard artifacts on top of the BigQuery execution path.
+
+The dashboard connects selected BigQuery mart outputs to embedded Looker Studio data sources and presents them as three stakeholder-facing pages:
+
+| Page | Screenshot |
+|---|---|
+| Executive Overview | [`docs/assets/looker-studio/executive_overview_dashboard.png`](docs/assets/looker-studio/executive_overview_dashboard.png) |
+| Tool Adoption and Usage | [`docs/assets/looker-studio/tool_adoption_dashboard.png`](docs/assets/looker-studio/tool_adoption_dashboard.png) |
+| Governance Exceptions and Review Signals | [`docs/assets/looker-studio/governance_exceptions_dashboard.png`](docs/assets/looker-studio/governance_exceptions_dashboard.png) |
+
+Dashboard documentation:
+
+```text
+docs/looker-studio-dashboard.md
+```
+
+The dashboard uses these existing marts:
+
+```text
+access_governance_dbt.access_requests_monthly
+access_governance_dbt.tool_adoption_monthly
+access_governance_dbt.adoption_review_candidates_monthly
+access_governance_dbt.governance_exceptions_current
+```
+
+The dashboard is a BI-facing portfolio artifact, not production BI infrastructure. Business logic, review classifications, and mart grain remain owned by dbt. Looker Studio is used for presentation, filtering, charting, and screenshot-based documentation.
+
+A public Looker Studio report link is not required. The repository-facing artifacts are the committed screenshots and documentation.
 
 ---
 
@@ -694,7 +742,7 @@ access-governance-warehouse/
 │  ├─ load_raw_to_bigquery.py
 │  └─ build_governance_report.py
 ├─ generator/
-├─ docs/
+├─ docs/       # modeling docs, BigQuery guide, Looker Studio dashboard docs, and screenshots
 └─ artifacts/
    ├─ cloud/
    ├─ reports/
@@ -711,6 +759,7 @@ access-governance-warehouse/
 | [`docs/testing-strategy.md`](docs/testing-strategy.md) | Testing philosophy, layer-level coverage, and validation commands |
 | [`docs/generator_source_contract_and_design_summary.md`](docs/generator_source_contract_and_design_summary.md) | Compact generator source contract and design summary |
 | [`docs/bigquery-execution-path.md`](docs/bigquery-execution-path.md) | Optional BigQuery setup, raw loading, dbt execution, validation, and cleanup guide |
+| [`docs/looker-studio-dashboard.md`](docs/looker-studio-dashboard.md) | Looker Studio dashboard purpose, pages, chart inventory, metric definitions, screenshots, limitations, and reproduction notes |
 | [`artifacts/reports/governance_report_v0_2_x.md`](artifacts/reports/governance_report_v0_2_x.md) | Generated static governance report |
 | [`artifacts/cloud/bigquery_build_summary.md`](artifacts/cloud/bigquery_build_summary.md) | BigQuery dbt build evidence |
 | [`artifacts/cloud/bigquery_test_summary.md`](artifacts/cloud/bigquery_test_summary.md) | BigQuery dbt test evidence |
@@ -817,15 +866,16 @@ This repository is in scope for:
 - dbt documentation
 - static Markdown reporting
 - committed cloud execution evidence
+- lightweight Looker Studio dashboard artifacts
+- screenshot-based BI documentation
 
-The following are intentionally outside the scope of v0.2.0:
+The following are intentionally outside the scope of this repository:
 
 - production orchestration
 - live source extraction
 - production-grade cloud deployment
 - scheduled dbt jobs
 - BigQuery execution in default CI
-- dashboard application development
 - application user interface implementation
 - real access provisioning
 - real audit trails
@@ -834,6 +884,9 @@ The following are intentionally outside the scope of v0.2.0:
 - audit-grade access reconstruction
 - historical organization snapshots
 - Terraform-managed infrastructure
+- custom dashboard application development
+- production BI deployment
+- public Looker Studio report link requirement
 
 These exclusions are intentional.  
 They keep the project focused on a minimal, reviewable dbt warehouse.
@@ -845,21 +898,26 @@ They keep the project focused on a minimal, reviewable dbt warehouse.
 Recommended review path:
 
 1. Start with this `README.md`.
-2. Open the generated report:
+2. Open the generated static report:
    - `artifacts/reports/governance_report_v0_2_x.md`
-3. Review the BigQuery execution evidence:
+3. Review the Looker Studio dashboard artifacts:
+   - `docs/looker-studio-dashboard.md`
+   - `docs/assets/looker-studio/executive_overview_dashboard.png`
+   - `docs/assets/looker-studio/tool_adoption_dashboard.png`
+   - `docs/assets/looker-studio/governance_exceptions_dashboard.png`
+4. Review the BigQuery execution evidence:
    - `artifacts/cloud/bigquery_build_summary.md`
    - `artifacts/cloud/bigquery_test_summary.md`
    - `artifacts/cloud/bigquery_relation_inventory.md`
-4. Review the mart models:
+5. Review the mart models:
    - `models/marts/governance/`
-5. Review the testing strategy:
+6. Review the testing strategy:
    - `docs/testing-strategy.md`
-6. Review the domain assumptions:
+7. Review the domain assumptions:
    - `docs/domain-modeling-and-assumptions.md`
-7. Review the optional BigQuery execution guide:
+8. Review the optional BigQuery execution guide:
    - `docs/bigquery-execution-path.md`
-8. Generate and inspect dbt documentation locally:
+9. Generate and inspect dbt documentation locally:
    - `uv run dbt docs generate`
    - `uv run dbt docs serve`
 
@@ -867,9 +925,9 @@ Recommended review path:
 
 ## Current status
 
-v0.2.0 extends the original local DuckDB analytics engineering portfolio with an optional BigQuery execution path.
+v0.2.1 extends the local DuckDB analytics engineering portfolio and the optional BigQuery execution path with lightweight Looker Studio dashboard artifacts.
 
-The local DuckDB path remains the primary clone-and-run review path. The BigQuery path validates that the same dbt source contract, model tree, marts, and data test suite can run on a cloud data warehouse.
+The local DuckDB path remains the primary clone-and-run review path. The BigQuery path validates that the same dbt source contract, model tree, marts, and data test suite can run on a cloud data warehouse. The Looker Studio artifacts demonstrate that selected BigQuery marts can support stakeholder-facing BI reporting through documented dashboard screenshots.
 
 Current validation baseline:
 
@@ -878,6 +936,15 @@ DuckDB dbt build:   PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
 DuckDB dbt test:    PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
 BigQuery dbt build: PASS=334 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=334
 BigQuery dbt test:  PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
+```
+
+Committed v0.2.1 BI-facing artifacts:
+
+```text
+docs/looker-studio-dashboard.md
+docs/assets/looker-studio/executive_overview_dashboard.png
+docs/assets/looker-studio/tool_adoption_dashboard.png
+docs/assets/looker-studio/governance_exceptions_dashboard.png
 ```
 
 ## License
