@@ -33,6 +33,19 @@
 
 ---
 
+## BI 向けダッシュボードの代表スクリーンショット
+
+v0.2.1 では、BigQuery marts に接続した軽量な Looker Studio dashboard artifacts を追加しています。
+
+以下は Executive Overview page のスクリーンショットです。access requests、approval rate、usage volume、spend、current governance review signals をまとめて確認できます。
+
+このスクリーンショットは、mart layer を SQL models や static reports に留めず、役員・事業部門・非エンジニアの stakeholder に意思決定材料として提示できる BI-facing artifact へ展開していることを示しています。
+
+[ダッシュボード documentation を確認する](docs/looker-studio-dashboard.ja.md)
+
+![Looker Studio Executive Overview dashboard](docs/assets/looker-studio/executive_overview_dashboard.png)
+
+
 ## 短時間レビュー向けの確認順序（Quick Review Path）
 
 短時間でポートフォリオとして確認する場合は、まず生成済み report と Looker Studio dashboard artifacts を確認し、その後に補助的な設計文書、BigQuery 実行証跡、mart SQL を確認する構成を推奨します。

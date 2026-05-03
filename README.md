@@ -10,6 +10,22 @@ The local DuckDB path remains the primary clone-and-run review path. The BigQuer
 
 ---
 
+---
+
+## BI-facing dashboard snapshot
+
+v0.2.1 adds lightweight Looker Studio dashboard artifacts connected to BigQuery marts.
+
+The screenshot below shows the Executive Overview page, which summarizes access requests, approval rate, usage volume, spend, and current governance review signals.
+
+This screenshot shows that the mart layer is not limited to SQL models and static reports, but is also extended into a BI-facing artifact that can present decision-making context to executives, business teams, and non-engineering stakeholders.
+
+[View the dashboard documentation](docs/looker-studio-dashboard.md)
+
+![Looker Studio Executive Overview dashboard](docs/assets/looker-studio/executive_overview_dashboard.png)
+
+---
+
 ## Overview
 
 `access-governance-warehouse` models an analytical layer for enterprise artificial intelligence tool access governance.
