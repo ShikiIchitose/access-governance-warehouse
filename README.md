@@ -1,5 +1,9 @@
 # access-governance-warehouse
 
+[![CI](https://github.com/ShikiIchitose/access-governance-warehouse/actions/workflows/ci.yml/badge.svg)](https://github.com/ShikiIchitose/access-governance-warehouse/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ShikiIchitose/access-governance-warehouse?sort=semver&display_name=tag)](https://github.com/ShikiIchitose/access-governance-warehouse/releases/latest)
+[![License](https://img.shields.io/github/license/ShikiIchitose/access-governance-warehouse)](LICENSE)
+
 > 日本語版: [README.ja.md](README.ja.md)
 
 A DuckDB + BigQuery + Looker Studio dbt analytics engineering portfolio project for enterprise artificial intelligence access governance.

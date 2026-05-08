@@ -1,5 +1,9 @@
 # access-governance-warehouse
 
+[![CI](https://github.com/ShikiIchitose/access-governance-warehouse/actions/workflows/ci.yml/badge.svg)](https://github.com/ShikiIchitose/access-governance-warehouse/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/ShikiIchitose/access-governance-warehouse?sort=semver&display_name=tag)](https://github.com/ShikiIchitose/access-governance-warehouse/releases/latest)
+[![License](https://img.shields.io/github/license/ShikiIchitose/access-governance-warehouse)](LICENSE)
+
 エンタープライズ向け AI ツールアクセスガバナンスを題材にした、DuckDB + BigQuery + Looker Studio + dbt による Analytics Engineering portfolio project です。
 
 このリポジトリは、決定論的に生成された synthetic source data を、明示的な dbt layers、data tests、documentation、static governance report、任意の BigQuery execution path、軽量な Looker Studio dashboard artifacts を通じて、小規模ながら信頼できる analytical warehouse としてモデル化できることを示します。
