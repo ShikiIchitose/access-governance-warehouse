@@ -1,0 +1,12 @@
+Running with dbt=1.11.8
+Registered adapter: bigquery=1.11.1
+Found 19 models, 315 data tests, 5 sources, 554 macros
+Concurrency: 5 threads
+
+...
+
+Finished running 315 data tests
+in 0 hours 0 minutes and 58.80 seconds (58.80s).
+
+Completed successfully
+Done. PASS=315 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=315
